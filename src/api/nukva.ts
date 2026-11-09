@@ -19,8 +19,10 @@ export type Capability =
   | 'commands.list'
   | 'commands.execute'
   | 'audit.read'
-  // Not provided by the current bridge; listed so the UI can label them as unavailable.
   | 'avatars.equip'
+  | 'avatars.max'
+  | 'items.edit'
+  // Not provided by the current bridge; listed so the UI can label them as unavailable.
   | 'avatars.fetter';
 
 export type Role = 'viewer' | 'operator' | 'admin';
@@ -67,9 +69,11 @@ export interface OwnedAvatar {
   constellation: number;
   fetterLevel: number;
   talents: { normal: TalentLevel; skill: TalentLevel; burst: TalentLevel } | null;
-  weapon: { itemId: number; level: number; promoteLevel: number; refinement: number } | null;
-  artifacts: { itemId: number; slot: string; level: number; mainPropId: number; appendPropIds: number[] }[];
+  weapon: { guid?: string; itemId: number; level: number; promoteLevel: number; refinement: number } | null;
+  artifacts: { guid?: string; itemId: number; slot: string; level: number; mainPropId: number; appendPropIds: number[] }[];
   rejected?: string[];
+  /** Set by the equip endpoint when the item was already on this character. */
+  alreadyEquipped?: boolean;
 }
 
 export interface InventoryItem {
@@ -81,7 +85,26 @@ export interface InventoryItem {
   refinement?: number;
   mainPropId?: number;
   appendPropIds?: number[];
+  slot?: string;
   equippedAvatarId?: number;
+}
+
+/** One line of the one-click max plan. Artifact lines carry the guid and itemId that would be equipped. */
+export interface MaxChange {
+  field: string;
+  from: string | number | null;
+  to: string | number;
+  guid?: string;
+  itemId?: number;
+}
+
+export interface MaxResult {
+  preview: boolean;
+  applied: boolean;
+  noop: boolean;
+  changes: MaxChange[];
+  avatar: OwnedAvatar;
+  rejected?: string[];
 }
 
 export interface AuditEntry {
@@ -108,8 +131,15 @@ export interface ExecuteResult {
   note: string;
 }
 
+export interface ItemPatch {
+  level?: number;
+  refinement?: number;
+  mainPropId?: number;
+  appendPropIds?: number[];
+}
+
 export const api = {
-  health: (c: Connection) => request<{ ok: boolean; service: string; apiVersion: number }>({ ...c, token: '' }, 'GET', '/health'),
+  health: (c: Connection) => request<{ ok: boolean; service: string; apiVersion: number }>(c, 'GET', '/health'),
   status: (c: Connection) => request<ServerStatus>(c, 'GET', '/status'),
   players: (c: Connection) => request<OnlinePlayer[]>(c, 'GET', '/players'),
   player: (c: Connection, uid: number) => request<PlayerSummary>(c, 'GET', `/players/${uid}`),
@@ -127,6 +157,15 @@ export const api = {
     avatarId: number,
     body: { level?: number; constellation?: number; normal?: number; skill?: number; burst?: number },
   ) => request<OwnedAvatar>(c, 'PATCH', `/players/${uid}/avatars/${avatarId}`, body),
+  equipItem: (c: Connection, uid: number, avatarId: number, guid: string) =>
+    request<OwnedAvatar>(c, 'POST', `/players/${uid}/avatars/${avatarId}/equip`, { guid }),
+  unequipItem: (c: Connection, uid: number, avatarId: number, slot: string) =>
+    request<OwnedAvatar>(c, 'POST', `/players/${uid}/avatars/${avatarId}/unequip`, { slot }),
+  patchItem: (c: Connection, uid: number, guid: string, body: ItemPatch) =>
+    request<InventoryItem>(c, 'PATCH', `/players/${uid}/items/${guid}`, body),
+  /** With apply false the server only returns the plan and writes nothing. */
+  maxAvatar: (c: Connection, uid: number, avatarId: number, apply: boolean) =>
+    request<MaxResult>(c, 'POST', `/players/${uid}/avatars/${avatarId}/max`, { apply }),
   giveItems: (c: Connection, uid: number, items: { itemId: number; amount: number; level?: number; refinement?: number }[]) =>
     request<GiveItemsResult>(c, 'POST', `/players/${uid}/items`, { items }),
   giveArtifact: (
@@ -149,6 +188,9 @@ export const CAPABILITY_ROLE: Partial<Record<Capability, Role>> = {
   'avatars.level': 'operator',
   'avatars.constellation': 'operator',
   'avatars.talents': 'operator',
+  'avatars.equip': 'operator',
+  'avatars.max': 'operator',
+  'items.edit': 'operator',
   'items.give': 'operator',
   'weapons.give': 'operator',
   'artifacts.give': 'operator',

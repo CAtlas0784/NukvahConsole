@@ -1,7 +1,7 @@
 import { useId } from 'react';
 
 /**
- * Nukva's emblem: a celestial orrery of engraved rings, ticks, a four-point star and orbiting
+ * Nukvah's emblem: a celestial orrery of engraved rings, ticks, a four-point star and orbiting
  * nodes. Pure SVG; ring rotation is CSS-driven so reduced-motion disables it automatically.
  */
 export function Orrery({ size = 520, className = '', intensity = 1 }: { size?: number; className?: string; intensity?: number }) {

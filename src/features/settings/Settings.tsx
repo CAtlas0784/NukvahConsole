@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { Info, Link2, Trash2, Unplug } from 'lucide-react';
+import { Clapperboard, Info, Link2, Trash2, Unplug } from 'lucide-react';
 import { useT } from '@/i18n';
-import { useSettings, type MotionPref } from '@/stores/settings';
+import { useSettings, type IntroMode, type MotionPref } from '@/stores/settings';
+import { useIntro } from '@/stores/intro';
+import { introFor } from '@/content/intro';
 import { useSession } from '@/stores/session';
 import { useCatalog } from '@/data/catalog';
 import { PageHeader, Panel, Segmented } from '@/components/ui/Primitives';
@@ -38,6 +40,24 @@ export default function Settings() {
                 { value: 'full', label: t('settings.motionFull') },
               ]}
             />
+          </div>
+          <div>
+            <div className="label">{t('settings.intro')}</div>
+            <div className="flex flex-wrap items-center gap-3">
+              <Segmented<IntroMode>
+                label="intro"
+                value={s.introMode}
+                onChange={(introMode) => s.set({ introMode })}
+                options={[
+                  { value: 'session', label: t('settings.introSession') },
+                  { value: 'version', label: t('settings.introVersion') },
+                  { value: 'off', label: t('settings.introOff') },
+                ]}
+              />
+              <button className="btn btn-ghost btn-sm" onClick={() => useIntro.getState().play(introFor(status?.gameVersion))}>
+                <Clapperboard size={14} /> {t('settings.replayIntro')}
+              </button>
+            </div>
           </div>
           <label className="flex items-center justify-between gap-4 rounded-xl border border-line px-4 py-3">
             <span className="text-sm text-ivory">{t('settings.ambient')}</span>

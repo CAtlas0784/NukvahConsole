@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, type AuditEntry, type OnlinePlayer, type OwnedAvatar, type PlayerSummary } from './nukva';
 import type { Connection } from './client';
 import { useConnection, useSession } from '@/stores/session';
-import { demoAudit, demoAvatars, demoPlayer, demoPlayers, DEMO_UID } from '@/data/demo';
+import { demoAudit, demoAvatars, demoInventory, demoPlayer, demoPlayers, DEMO_UID } from '@/data/demo';
 import type { CommandInfo } from '@/data/types';
 
 export interface Live<T> {
@@ -42,7 +42,7 @@ function useLive<T>(fetcher: ((c: Connection) => Promise<T>) | null, preview: T 
       alive = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, conn?.baseUrl, conn?.token, tick, ...deps]);
+  }, [mode, conn?.baseUrl, tick, ...deps]);
 
   const refresh = useCallback(() => setTick((n) => n + 1), []);
   const set = useCallback((value: T) => setState({ data: value, loading: false }), []);
@@ -73,4 +73,9 @@ export function useLiveCommands(): Live<CommandInfo[]> {
 
 export function useInventory(uid: number | null, enabled = true): Live<import('./nukva').InventoryItem[]> {
   return useLive(uid && enabled ? (c) => api.inventory(c, uid) : null, undefined, [uid, enabled]);
+}
+
+/** Inventory for the Character Builder: live when linked, simulated gear in preview mode. */
+export function useBuilderInventory(uid: number | null): Live<import('./nukva').InventoryItem[]> {
+  return useLive(uid ? (c) => api.inventory(c, uid) : null, uid === DEMO_UID ? demoInventory : undefined, [uid]);
 }

@@ -8,7 +8,7 @@ import { useAudit, usePlayer } from '@/api/hooks';
 import { useCatalog } from '@/data/catalog';
 import { demoStatus } from '@/data/demo';
 import { ErrorState, PageHeader, Panel, Skeleton, Stat } from '@/components/ui/Primitives';
-import { Orrery } from '@/components/fx/Orrery';
+import { NukvahSigil } from '@/components/fx/NukvahSigil';
 import { ease } from '@/lib/motion';
 import type { Capability } from '@/api/nukva';
 
@@ -80,9 +80,9 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         {/* Server */}
         <motion.div {...fade(0)}>
-          <Panel corners className="relative h-full overflow-hidden p-6">
-            <div className="pointer-events-none absolute -top-24 -right-24 opacity-40" aria-hidden>
-              <Orrery size={280} />
+          <Panel corners className="tilt relative h-full overflow-hidden p-6">
+            <div className="pointer-events-none absolute -top-6 -right-8 opacity-30" aria-hidden>
+              <NukvahSigil size={170} body={false} />
             </div>
             <div className="eyebrow mb-4">{t('dashboard.serverPanel')}</div>
             {status ? (
@@ -208,7 +208,7 @@ export default function Dashboard() {
                 { to: '/commands', icon: ScrollText, label: t('dashboard.qCommands') },
                 { to: '/search', icon: Boxes, label: t('nav.search') },
               ].map(({ to, icon: Icon, label }) => (
-                <Link key={label} to={to} className="panel-interactive group flex flex-col gap-3 rounded-xl border border-line bg-abyss/40 p-3.5">
+                <Link key={label} to={to} className="panel-interactive tilt group flex flex-col gap-3 rounded-xl border border-line bg-abyss/40 p-3.5" data-tilt-max="10">
                   <Icon size={18} className="text-gold transition-transform group-hover:scale-110" />
                   <span className="flex items-center justify-between text-sm text-ivory">
                     {label} <ArrowUpRight size={13} className="opacity-0 transition-opacity group-hover:opacity-70" />

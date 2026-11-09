@@ -1,12 +1,14 @@
 /**
- * Minimal HTTP client for the Nukva bridge (/nukva/v1 on the SnezhnayaCore HTTP listener).
+ * Minimal HTTP client for the Nukvah bridge (/nukva/v1 on the SnezhnayaCore HTTP listener).
  * Every response is either { ok: true, data } or { ok: false, error: { code, message } }.
  */
 
+/** The bridge is local-only (no tokens): a connection is just the server's loopback address. */
 export interface Connection {
   baseUrl: string;
-  token: string;
 }
+
+export const DEFAULT_BASE_URL = 'http://127.0.0.1:8088';
 
 export class ApiError extends Error {
   constructor(
@@ -25,7 +27,7 @@ const TIMEOUT_MS = 20_000;
 export function normalizeBaseUrl(input: string): string {
   let value = input.trim();
   if (!value) return '';
-  if (!/^https?:\/\//i.test(value)) value = `https://${value}`;
+  if (!/^https?:\/\//i.test(value)) value = `${/^(localhost|127\.|\[::1\])/i.test(value) ? 'http' : 'https'}://${value}`;
   const url = new URL(value);
   // Accept a pasted ".../nukva/v1" URL as well.
   const pathname = url.pathname.replace(/\/+$/, '').replace(/\/nukva\/v1$/i, '');
@@ -35,7 +37,7 @@ export function normalizeBaseUrl(input: string): string {
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', '::1']);
 
 /** Explains why a browser would refuse to talk to this URL from the current page, if it would. */
-export function transportProblem(baseUrl: string, pageProtocol = globalThis.location?.protocol): string | null {
+export function transportProblem(baseUrl: string): 'invalid-url' | 'not-local' | null {
   let url: URL;
   try {
     url = new URL(baseUrl);
@@ -43,7 +45,9 @@ export function transportProblem(baseUrl: string, pageProtocol = globalThis.loca
     return 'invalid-url';
   }
   if (url.protocol !== 'https:' && url.protocol !== 'http:') return 'invalid-url';
-  if (pageProtocol === 'https:' && url.protocol === 'http:' && !LOCAL_HOSTS.has(url.hostname)) return 'mixed-content';
+  // The bridge refuses anything that does not arrive on this machine's loopback interface.
+  // (Browsers exempt loopback from mixed-content blocking, so an https page may still call it.)
+  if (!LOCAL_HOSTS.has(url.hostname)) return 'not-local';
   return null;
 }
 
@@ -68,7 +72,6 @@ export async function request<T>(
       referrerPolicy: 'no-referrer',
       headers: {
         Accept: 'application/json',
-        ...(conn.token ? { Authorization: `Bearer ${conn.token}` } : {}),
         ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
       },
       body: body !== undefined ? JSON.stringify(body) : undefined,
@@ -80,7 +83,7 @@ export async function request<T>(
     throw new ApiError(
       0,
       'NETWORK',
-      'Could not reach the server. Check the URL, HTTPS certificate, and that this site is in the bridge allowedOrigins.',
+      'Could not reach the server. Check that SnezhnayaCore is running, the port is right, and this page origin is in nukva.json allowedOrigins.',
     );
   } finally {
     clearTimeout(timer);
@@ -98,7 +101,7 @@ export async function request<T>(
     throw new ApiError(response.status, envelope.error.code ?? 'ERROR', envelope.error.message ?? 'Request failed.');
   }
   if (response.status === 404) {
-    throw new ApiError(404, 'BRIDGE_NOT_FOUND', 'No Nukva bridge at this address (is it enabled in nukva.json?).');
+    throw new ApiError(404, 'BRIDGE_NOT_FOUND', 'No Nukvah bridge at this address (is it enabled in nukva.json?).');
   }
   throw new ApiError(response.status, 'UNEXPECTED_RESPONSE', `Unexpected response (HTTP ${response.status}).`);
 }

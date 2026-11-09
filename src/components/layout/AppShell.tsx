@@ -106,13 +106,25 @@ export function AppShell() {
         <PreviewBanner />
         <Topbar onOpenPalette={() => setPalette(true)} onOpenMenu={() => setMenu(true)} />
         <main id="main" className="relative min-w-0 flex-1 px-4 py-8 md:px-8 lg:px-10">
+          {/* golden light sweep on every route change */}
+          <AnimatePresence>
+            <motion.div
+              key={`sweep-${location.pathname}`}
+              className="pointer-events-none fixed inset-x-0 top-0 z-30 h-[2px] bg-gradient-to-r from-transparent via-gold-bright to-transparent shadow-[0_0_24px_6px_rgba(247,228,176,0.35)]"
+              initial={{ y: 0, opacity: 0.9, scaleX: 0.2 }}
+              animate={{ y: '100vh', opacity: 0, scaleX: 1 }}
+              transition={{ duration: 0.9, ease }}
+              aria-hidden
+            />
+          </AnimatePresence>
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}
-              initial={{ opacity: 0, y: 14, filter: 'blur(4px)' }}
-              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-              exit={{ opacity: 0, y: -8, filter: 'blur(2px)' }}
-              transition={{ duration: 0.38, ease }}
+              initial={{ opacity: 0, y: 30, rotateX: 7, scale: 0.985, filter: 'blur(6px)' }}
+              animate={{ opacity: 1, y: 0, rotateX: 0, scale: 1, filter: 'blur(0px)' }}
+              exit={{ opacity: 0, y: -14, rotateX: -4, scale: 0.99, filter: 'blur(4px)' }}
+              transition={{ duration: 0.5, ease }}
+              style={{ transformPerspective: 1400, transformOrigin: '50% 0%' }}
               className="mx-auto max-w-[1400px]"
             >
               <Outlet />

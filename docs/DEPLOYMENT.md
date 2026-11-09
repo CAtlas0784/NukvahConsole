@@ -36,63 +36,42 @@ is the standard limitation of Pages and does not affect users.)
 
 For a custom domain or a `<user>.github.io` user site, build with `VITE_BASE_PATH=/`.
 
-## Connecting the hosted console to SnezhnayaCore
+## Connecting the console to SnezhnayaCore
 
-The browser talks to the bridge directly, so the bridge must be reachable over **HTTPS** from the
-user's machine.
+The bridge is **local-only and has no tokens**: run the server and open the console on the same
+machine, then connect to `http://127.0.0.1:<HTTP listener port>` (default `http://127.0.0.1:8088`,
+from `server.http.bindPort` in `config.json`).
 
-### 1. Enable the bridge
+### 1. Bridge settings (optional)
 
-In the server's working directory create `nukva.json` (template: `nukva.example.json`):
+The bridge is on by default; `nukva.json` in the server's working directory is optional
+(template: `nukva.example.json`). Use it to turn the bridge off or to allow another console origin:
 
 ```json
 {
   "enabled": true,
-  "allowedOrigins": ["https://<user>.github.io", "https://nukva-console.vercel.app", "http://localhost:5173"],
-  "tokens": [{ "id": "owner", "sha256": "<sha256 of your token>", "role": "operator" }]
+  "allowedOrigins": ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:4173", "http://127.0.0.1:4173"]
 }
 ```
 
-Restart the server; the log shows `[Nukva] API bridge enabled at /nukva/v1 …`.
+Restart the server after changing it; the log shows `[Nukva] API bridge enabled at /nukva/v1 (local-only …`.
 
-### 2. Provide HTTPS — pick one
+### 2. Run the console
 
-**Tailscale Serve (recommended; private to your tailnet).** You already use a `*.ts.net` host.
+`npm run dev` serves `http://localhost:5173` (`npm run preview` → `http://localhost:4173`); both
+origins are allowed by default. A hosted copy (Vercel/GitHub Pages) also works from this machine
+if you add its origin to `allowedOrigins`, since browsers let any page call loopback.
 
-```bash
-tailscale serve --bg 8088
-```
-
-The console URL is then `https://<machine>.<tailnet>.ts.net`. Only devices on your tailnet can
-reach it. (`tailscale funnel` would make it public — avoid unless you need it.)
-
-**Cloudflare Tunnel.** `cloudflared tunnel --url http://127.0.0.1:8088` (or a named tunnel with
-Cloudflare Access in front for an extra login).
-
-**Reverse proxy (Caddy).**
-
-```
-nukva.example.com {
-    reverse_proxy 127.0.0.1:8088
-}
-```
-
-**SnezhnayaCore's own TLS** (`server.http.encryption.useEncryption` with a keystore) works only
-with a certificate browsers trust.
-
-### 3. Local development
-
-`npm run dev` serves `http://localhost:5173`; browsers allow it to call
-`http://127.0.0.1:<port>` directly. Add `http://localhost:5173` to `allowedOrigins`.
+Tailscale Serve, Cloudflare Tunnel and reverse proxies are **not** supported: requests that carry
+forwarding headers are refused with `LOCAL_ONLY`.
 
 ### Troubleshooting
 
 | Symptom | Cause |
 |---|---|
-| `NETWORK` on connect | Wrong URL, untrusted certificate, server down, or origin not allowed (no CORS headers) |
+| `NETWORK` on connect | Server down, wrong port, or origin not allowed (no CORS headers) |
 | `ORIGIN_NOT_ALLOWED` | Add the exact origin shown in the message to `allowedOrigins` |
-| `BRIDGE_NOT_FOUND` / generic `{"retcode":0…}` | Bridge disabled, or another process owns the port |
-| `UNAUTHORIZED` | Token doesn't match any digest |
-| `LOCKED_OUT` | Too many failures from your IP; wait 10 minutes |
+| `BRIDGE_NOT_FOUND` / generic `{"retcode":0…}` | Bridge disabled (`enabled: false`), or another process owns the port |
+| `LOCAL_ONLY` | Request did not come from this machine via 127.0.0.1/localhost, or went through a proxy/tunnel |
 | `PLAYER_OFFLINE` | The bridge acts only on online players |
 | `GAME_THREAD_TIMEOUT` | Server tick stalled or overloaded |

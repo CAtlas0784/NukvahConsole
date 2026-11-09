@@ -227,7 +227,7 @@ export default function Presets() {
                 </div>
                 <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                   {g.items.map((p, i) => (
-                    <motion.li key={p.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03, ease }} className="panel panel-interactive flex flex-col gap-3 p-4">
+                    <motion.li key={p.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03, ease }} className="panel panel-interactive tilt flex flex-col gap-3 p-4" data-tilt-max="5">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <div className="truncate font-semibold text-ivory">{p.name}</div>
