@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches-ignore: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - name: Build with a GitHub Pages base path
+        run: npx vite build --outDir dist-pages
+        env:
+          VITE_BASE_PATH: /nukva-console/
+      - name: Check the Pages build references the sub-path and ships 404.html
+        run: |
+          test -f dist-pages/404.html
+          grep -q '/nukva-console/assets/' dist-pages/index.html

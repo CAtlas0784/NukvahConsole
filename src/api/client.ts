@@ -1,0 +1,104 @@
+/**
+ * Minimal HTTP client for the Nukva bridge (/nukva/v1 on the SnezhnayaCore HTTP listener).
+ * Every response is either { ok: true, data } or { ok: false, error: { code, message } }.
+ */
+
+export interface Connection {
+  baseUrl: string;
+  token: string;
+}
+
+export class ApiError extends Error {
+  constructor(
+    public readonly status: number,
+    public readonly code: string,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+export const API_PREFIX = '/nukva/v1';
+const TIMEOUT_MS = 20_000;
+
+export function normalizeBaseUrl(input: string): string {
+  let value = input.trim();
+  if (!value) return '';
+  if (!/^https?:\/\//i.test(value)) value = `https://${value}`;
+  const url = new URL(value);
+  // Accept a pasted ".../nukva/v1" URL as well.
+  const pathname = url.pathname.replace(/\/+$/, '').replace(/\/nukva\/v1$/i, '');
+  return `${url.protocol}//${url.host}${pathname}`;
+}
+
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', '::1']);
+
+/** Explains why a browser would refuse to talk to this URL from the current page, if it would. */
+export function transportProblem(baseUrl: string, pageProtocol = globalThis.location?.protocol): string | null {
+  let url: URL;
+  try {
+    url = new URL(baseUrl);
+  } catch {
+    return 'invalid-url';
+  }
+  if (url.protocol !== 'https:' && url.protocol !== 'http:') return 'invalid-url';
+  if (pageProtocol === 'https:' && url.protocol === 'http:' && !LOCAL_HOSTS.has(url.hostname)) return 'mixed-content';
+  return null;
+}
+
+export async function request<T>(
+  conn: Connection,
+  method: 'GET' | 'POST' | 'PATCH',
+  path: string,
+  body?: unknown,
+  signal?: AbortSignal,
+): Promise<T> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(new DOMException('timeout', 'TimeoutError')), TIMEOUT_MS);
+  signal?.addEventListener('abort', () => controller.abort(signal.reason), { once: true });
+
+  let response: Response;
+  try {
+    response = await fetch(`${conn.baseUrl}${API_PREFIX}${path}`, {
+      method,
+      mode: 'cors',
+      credentials: 'omit',
+      cache: 'no-store',
+      referrerPolicy: 'no-referrer',
+      headers: {
+        Accept: 'application/json',
+        ...(conn.token ? { Authorization: `Bearer ${conn.token}` } : {}),
+        ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+      },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (controller.signal.aborted && !signal?.aborted) throw new ApiError(0, 'TIMEOUT', 'The server did not respond in time.');
+    if (signal?.aborted) throw new ApiError(0, 'ABORTED', 'Request cancelled.');
+    throw new ApiError(
+      0,
+      'NETWORK',
+      'Could not reach the server. Check the URL, HTTPS certificate, and that this site is in the bridge allowedOrigins.',
+    );
+  } finally {
+    clearTimeout(timer);
+  }
+
+  let payload: unknown = null;
+  try {
+    payload = await response.json();
+  } catch {
+    // fall through
+  }
+  const envelope = payload as { ok?: boolean; data?: T; error?: { code?: string; message?: string } } | null;
+  if (response.ok && envelope?.ok === true) return envelope.data as T;
+  if (envelope && envelope.ok === false && envelope.error) {
+    throw new ApiError(response.status, envelope.error.code ?? 'ERROR', envelope.error.message ?? 'Request failed.');
+  }
+  if (response.status === 404) {
+    throw new ApiError(404, 'BRIDGE_NOT_FOUND', 'No Nukva bridge at this address (is it enabled in nukva.json?).');
+  }
+  throw new ApiError(response.status, 'UNEXPECTED_RESPONSE', `Unexpected response (HTTP ${response.status}).`);
+}

@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "generatedAt": "2026-11-09T04:20:24.765Z",
+  "gameVersion": "7.2.0",
+  "source": "SnezhnayaCore resources (ExcelBinOutput + TextMap) and command sources",
+  "counts": {
+    "characters": 119,
+    "weapons": 250,
+    "artifactSets": 63,
+    "materials": 9639,
+    "monsters": 1476,
+    "scenes": 2241,
+    "commands": 58
+  }
+}
