@@ -1,15 +1,19 @@
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { motion } from 'motion/react';
-import { ArrowRight, Eye, EyeOff, KeyRound, Link2, Loader2, Server, Sparkles, TriangleAlert } from 'lucide-react';
-import { Orrery } from '@/components/fx/Orrery';
+import { ArrowRight, Link2, Loader2, Server, Sparkles, TriangleAlert } from 'lucide-react';
+import { NukvahSigil } from '@/components/fx/NukvahSigil';
+
+const ArmillaryBackdrop = lazy(() => import('@/components/three/ArmillaryBackdrop'));
+const Crown3D = lazy(() => import('@/components/three/Crown3D'));
+import { Motes } from '@/components/fx/Motes';
 import { useT } from '@/i18n';
 import { useSession } from '@/stores/session';
 import { useSettings } from '@/stores/settings';
 import { api } from '@/api/nukva';
-import { ApiError, normalizeBaseUrl, transportProblem } from '@/api/client';
+import { ApiError, DEFAULT_BASE_URL, normalizeBaseUrl, transportProblem } from '@/api/client';
 import { ease } from '@/lib/motion';
 
-const LETTERS = 'NUKVA'.split('');
+const LETTERS = 'NUKVAH'.split('');
 
 export function Gate() {
   const t = useT();
@@ -20,9 +24,7 @@ export function Gate() {
   const enterPreview = useSession((s) => s.enterPreview);
 
   const [url, setUrl] = useState(storedUrl);
-  const [token, setToken] = useState('');
   const [remember, setRemember] = useState(false);
-  const [reveal, setReveal] = useState(false);
   const [phase, setPhase] = useState<'idle' | 'probe' | 'auth'>('idle');
   const [error, setError] = useState<string | null>(null);
 
@@ -40,12 +42,12 @@ export function Gate() {
     }
     const problem = transportProblem(base);
     if (problem === 'invalid-url') return setError(t('gate.invalidUrl'));
-    if (problem === 'mixed-content') return setError(t('gate.mixedContent'));
+    if (problem === 'not-local') return setError(t('gate.notLocal'));
     try {
       setPhase('probe');
-      await api.health({ baseUrl: base, token: '' });
+      await api.health({ baseUrl: base });
       setPhase('auth');
-      await connect(base, token, remember);
+      await connect(base, remember);
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.code === 'ORIGIN_NOT_ALLOWED') setError(`${err.message} → allowedOrigins: "${origin}"`);
@@ -58,13 +60,15 @@ export function Gate() {
 
   return (
     <div className="relative min-h-dvh overflow-hidden">
-      {/* backdrop sigil */}
-      <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 lg:left-[34%]" aria-hidden>
-        <motion.div initial={{ opacity: 0, scale: 0.86, rotate: -20 }} animate={{ opacity: 1, scale: 1, rotate: 0 }} transition={{ duration: 2.4, ease }}>
-          <Orrery size={1100} className="max-w-none opacity-[0.16] lg:opacity-[0.2]" />
-        </motion.div>
+      {/* Celestia's armillary turning in the dark sky (real 3D, lazy-loaded). */}
+      <div className="absolute inset-0 bg-[#03040a]" aria-hidden>
+        <Suspense fallback={null}>
+          <ArmillaryBackdrop focus={0.15} />
+        </Suspense>
       </div>
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_30%,#04050b_85%)]" aria-hidden />
+      <Motes count={40} className="absolute inset-0" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_55%_50%,transparent_20%,rgba(3,4,10,0.8)_85%),linear-gradient(90deg,rgba(3,4,10,0.78)_0%,rgba(3,4,10,0.35)_40%,rgba(3,4,10,0.2)_60%,rgba(3,4,10,0.7)_100%)]" aria-hidden />
+      <motion.div className="pointer-events-none absolute inset-0 bg-[#fffaf0]" initial={{ opacity: 1 }} animate={{ opacity: 0 }} transition={{ duration: 1.6, ease }} aria-hidden />
 
       <header className="relative z-10 flex items-center justify-between px-6 pt-6 md:px-10">
         <div className="eyebrow flex items-center gap-2 text-gold/80">
@@ -79,11 +83,16 @@ export function Gate() {
       <div className="relative z-10 mx-auto grid min-h-[calc(100dvh-80px)] max-w-7xl items-center gap-12 px-6 pb-12 md:px-10 lg:grid-cols-[1.15fr_0.85fr]">
         {/* Identity */}
         <section className="pt-10 lg:pt-0">
+          <motion.div initial={{ opacity: 0, y: 20, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ delay: 0.2, duration: 1.4, ease }} className="mb-3 -ml-10 h-[210px] w-[230px]">
+            <Suspense fallback={<NukvahSigil size={150} body={false} className="mx-auto mt-6" />}>
+              <Crown3D />
+            </Suspense>
+          </motion.div>
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.9, ease }} className="eyebrow mb-6 flex items-center gap-3">
             <span className="h-px w-10 bg-gradient-to-r from-transparent to-gold" />
             {t('brand.secondary')}
           </motion.div>
-          <h1 className="font-display text-[clamp(3.4rem,8.5vw,8.5rem)] leading-[0.9] font-semibold whitespace-nowrap" aria-label="Nukva">
+          <h1 className="font-display text-[clamp(3.4rem,8.5vw,8.5rem)] leading-[0.9] font-semibold whitespace-nowrap" aria-label="Nukvah">
             {LETTERS.map((letter, i) => (
               <motion.span
                 key={i}
@@ -116,7 +125,7 @@ export function Gate() {
         </section>
 
         {/* Link form */}
-        <motion.section initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9, duration: 0.9, ease }} className="panel panel-corners p-7 md:p-8">
+        <motion.section initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9, duration: 0.9, ease }} className="panel panel-corners tilt p-7 md:p-8" data-tilt-max="3">
           <div className="eyebrow mb-2 flex items-center gap-2">
             <Link2 size={13} /> {t('gate.eyebrow')}
           </div>
@@ -130,31 +139,9 @@ export function Gate() {
               </label>
               <div className="relative">
                 <Server size={15} className="absolute top-1/2 left-3 -translate-y-1/2 text-dim" />
-                <input id="gate-url" className="field pl-9 font-mono text-sm" placeholder="https://your-host.ts.net" value={url} onChange={(e) => setUrl(e.target.value)} autoComplete="url" spellCheck={false} required />
+                <input id="gate-url" className="field pl-9 font-mono text-sm" placeholder={DEFAULT_BASE_URL} value={url} onChange={(e) => setUrl(e.target.value)} autoComplete="url" spellCheck={false} required />
               </div>
               <p className="mt-1.5 text-xs text-dim">{t('gate.serverUrlHint')}</p>
-            </div>
-            <div>
-              <label className="label" htmlFor="gate-token">
-                {t('gate.token')}
-              </label>
-              <div className="relative">
-                <KeyRound size={15} className="absolute top-1/2 left-3 -translate-y-1/2 text-dim" />
-                <input
-                  id="gate-token"
-                  className="field pr-10 pl-9 font-mono text-sm"
-                  type={reveal ? 'text' : 'password'}
-                  value={token}
-                  onChange={(e) => setToken(e.target.value)}
-                  autoComplete="off"
-                  spellCheck={false}
-                  required
-                />
-                <button type="button" className="absolute top-1/2 right-2 -translate-y-1/2 p-1.5 text-dim hover:text-ivory" onClick={() => setReveal((r) => !r)} aria-label={reveal ? 'Hide token' : 'Show token'}>
-                  {reveal ? <EyeOff size={15} /> : <Eye size={15} />}
-                </button>
-              </div>
-              <p className="mt-1.5 text-xs text-dim">{t('gate.tokenHint')}</p>
             </div>
             <label className="flex cursor-pointer items-start gap-3 text-sm">
               <input type="checkbox" className="mt-1 accent-[#e2c27d]" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
@@ -171,7 +158,7 @@ export function Gate() {
               </div>
             )}
 
-            <button className="btn btn-primary w-full py-3" type="submit" disabled={phase !== 'idle' || !url.trim() || !token.trim()}>
+            <button className="btn btn-primary w-full py-3" type="submit" disabled={phase !== 'idle' || !url.trim()}>
               {phase !== 'idle' ? <Loader2 size={16} className="animate-spin" /> : <ArrowRight size={16} />}
               {phase === 'probe' ? t('gate.checking') : phase === 'auth' ? t('gate.authenticating') : t('gate.connect')}
             </button>

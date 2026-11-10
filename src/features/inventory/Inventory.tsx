@@ -175,7 +175,7 @@ export default function Inventory() {
                   <div className="mb-3 text-xs text-dim">{t('common.showing', { n: Math.min(limit, list.length), total: list.length })}</div>
                   <ul className="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-3">
                     {list.slice(0, limit).map((m) => (
-                      <li key={m.id} className={`panel panel-interactive flex flex-col gap-3 p-3.5 ${m.id === focusId ? 'ring-1 ring-cyan/60' : ''}`}>
+                      <li key={m.id} className={`panel panel-interactive tilt flex flex-col gap-3 p-3.5 ${m.id === focusId ? 'ring-1 ring-cyan/60' : ''}`}>
                         <div className="flex items-start gap-3">
                           <Artwork icon={m.icon} name={m.name.en} rarity={m.rarity} size={46} rounded="rounded-xl" />
                           <div className="min-w-0 flex-1">

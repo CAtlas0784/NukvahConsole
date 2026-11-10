@@ -4,12 +4,16 @@ import { safeStorage } from '@/lib/storage';
 
 export type Lang = 'en' | 'th';
 export type MotionPref = 'system' | 'reduced' | 'full';
+export type IntroMode = 'session' | 'version' | 'off';
 
 interface SettingsState {
   lang: Lang;
   motion: MotionPref;
   ambient: boolean;
   assetBase: string;
+  introMode: IntroMode;
+  /** Last intro version watched (for introMode 'version'). */
+  introSeen: string;
   set: (patch: Partial<Omit<SettingsState, 'set'>>) => void;
 }
 
@@ -22,6 +26,8 @@ export const useSettings = create<SettingsState>()(
       motion: 'system',
       ambient: true,
       assetBase: (import.meta.env.VITE_ASSET_BASE_URL as string | undefined)?.replace(/\/+$/, '') ?? '',
+      introMode: 'session',
+      introSeen: '',
       set: (patch) => set(patch),
     }),
     { name: 'nukva.settings', storage: createJSONStorage(() => safeStorage('local')), version: 1 },

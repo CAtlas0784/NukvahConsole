@@ -91,7 +91,7 @@ function WeaponForge({ initial }: { initial: number | null }) {
           <ul className="grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-2.5">
             {list.map((w) => (
               <li key={w.id}>
-                <button onClick={() => setSelected(w)} className={`panel panel-interactive flex w-full items-center gap-3 p-3 text-left ${selected?.id === w.id ? 'ring-1 ring-gold/60' : ''}`}>
+                <button onClick={() => setSelected(w)} className={`panel panel-interactive tilt flex w-full items-center gap-3 p-3 text-left ${selected?.id === w.id ? 'ring-1 ring-gold/60' : ''}`}>
                   <Artwork icon={w.icon} name={w.name.en} rarity={w.rarity} size={44} rounded="rounded-xl" />
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm text-ivory">{t.loc(w.name)}</div>

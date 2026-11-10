@@ -4,8 +4,8 @@
 
 | Layer | Where | Responsibility |
 |---|---|---|
-| **Nukva Console** | this repository; static files on Vercel / GitHub Pages | UI, search, catalog, previews, presets. No server runtime. |
-| **Nukva bridge** | `SnezhnayaCore/src/main/java/emu/grasscutter/server/http/nukva/` | Authenticated JSON API mounted at `/nukva/v1` on the server's existing Javalin HTTP listener |
+| **Nukvah Console** | this repository; static files on Vercel / GitHub Pages | UI, search, catalog, previews, presets. No server runtime. |
+| **Nukvah bridge** | `SnezhnayaCore/src/main/java/emu/grasscutter/server/http/nukva/` | Authenticated JSON API mounted at `/nukva/v1` on the server's existing Javalin HTTP listener |
 | **SnezhnayaCore** | Java game server + MongoDB | Owns all game state; the bridge calls its existing methods |
 
 ## Decisions

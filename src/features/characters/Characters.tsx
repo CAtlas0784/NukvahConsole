@@ -121,7 +121,7 @@ function CharacterCard({ character: c, owned, onOpen }: { character: Character; 
   return (
     <button
       onClick={onOpen}
-      className="panel panel-interactive group relative flex w-full flex-col items-center overflow-hidden px-3 pt-5 pb-4 text-center"
+      className="panel panel-interactive tilt group relative flex w-full flex-col items-center overflow-hidden px-3 pt-5 pb-4 text-center"
       style={{ backgroundImage: `radial-gradient(120% 70% at 50% 0%, ${color}22, transparent 60%)` }}
     >
       <div className={`absolute inset-x-0 top-0 h-px ${c.rarity === 5 ? 'bg-gradient-to-r from-transparent via-gold to-transparent' : 'bg-gradient-to-r from-transparent via-violet to-transparent'}`} />

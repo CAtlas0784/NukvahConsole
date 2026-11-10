@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Generates the Nukva Console catalog (public/data/*.json) from the SnezhnayaCore server's own
+ * Generates the Nukvah Console catalog (public/data/*.json) from the SnezhnayaCore server's own
  * resource files, so IDs and names match exactly what the server loads.
  *
  *   node scripts/build-catalog.mjs [--server ../SnezhnayaCore] [--resources <server>/resources]

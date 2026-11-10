@@ -1,21 +1,22 @@
-# Nukva Console — The Authority Over Teyvat
+# Nukvah Console — The Authority Over Teyvat
 
 *An Intelligence Beyond the Heavenly Principles.*
 
-Nukva Console is a web administration and character-management console for the
+Nukvah Console is a web administration and character-management console for the
 **SnezhnayaCore** Genshin Impact 7.2 private server. Instead of memorising GM commands and ID
 lists, you search, pick, preview the exact request, confirm, and get the server's verified
 answer.
 
 It is a standalone static site (React + TypeScript + Vite). It deploys to **Vercel** or
-**GitHub Pages** from the same code, and talks to the game server through the **Nukva bridge**,
-a small authenticated API inside SnezhnayaCore (`/nukva/v1`).
+**GitHub Pages** from the same code, and talks to the game server through the **Nukvah bridge**,
+a small local-only API inside SnezhnayaCore (`/nukva/v1`). Server and console run on the same
+machine; there are no tokens.
 
 ```
-Browser ── Nukva Console (static, Vercel / GitHub Pages)
-             │  HTTPS + Bearer token, CORS allowlist
+Browser ── Nukvah Console (npm run dev / preview, same machine)
+             │  http://127.0.0.1:<port>, loopback-only, CORS allowlist
              ▼
-           Nukva bridge  (/nukva/v1 on the SnezhnayaCore HTTP listener)
+           Nukvah bridge  (/nukva/v1 on the SnezhnayaCore HTTP listener)
              │  server task scheduler → existing game methods
              ▼
            SnezhnayaCore 7.2 (Java game server + MongoDB)
@@ -66,14 +67,12 @@ Open http://localhost:5173, choose **Enter preview mode**, or link a server (bel
 ## Linking a server
 
 1. Build SnezhnayaCore from the `feature/nukva-bridge` branch.
-2. Create `nukva.json` in the server's working directory (template:
-   `nukva.example.json` in the server repo) with a token **hash**, a role and your console's
-   origin. See [docs/SECURITY.md](docs/SECURITY.md#tokens).
-3. Expose the server's HTTP listener over **HTTPS** (Tailscale Serve, Cloudflare Tunnel or a
-   reverse proxy) — a page served over HTTPS cannot call a plain-HTTP server.
-4. In the console, enter the HTTPS URL and the token.
+2. Start the server on this machine. The bridge is on by default and accepts only local requests
+   (no token). `nukva.json` is optional — use it to disable the bridge or allow another origin.
+3. In the console, enter `http://127.0.0.1:<HTTP listener port>` (default `http://127.0.0.1:8088`)
+   and connect.
 
-Details: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#connecting-the-hosted-console-to-snezhnayacore).
+Details: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#connecting-the-console-to-snezhnayacore).
 
 ## Deploying
 
@@ -94,7 +93,7 @@ node --max-old-space-size=6144 scripts/build-catalog.mjs --server ../SnezhnayaCo
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md) — components, decisions, data flow
-- [Security](docs/SECURITY.md) — threat model, tokens, roles, CORS, audit
-- [Deployment](docs/DEPLOYMENT.md) — Vercel, GitHub Pages, HTTPS connection
+- [Security](docs/SECURITY.md) — threat model, local-only access, CORS, audit
+- [Deployment](docs/DEPLOYMENT.md) — Vercel, GitHub Pages, local connection
 - [Features & limitations](docs/FEATURES.md)
 - [Data provenance](docs/DATA_PROVENANCE.md)

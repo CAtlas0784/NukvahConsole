@@ -1,8 +1,9 @@
 import { NavLink } from 'react-router';
 import { motion } from 'motion/react';
-import { Bookmark, Compass, Globe2, LayoutDashboard, Package, ScrollText, Search, Settings, Swords, Users } from 'lucide-react';
+import { Bookmark, Compass, Globe2, LayoutDashboard, Package, ScrollText, Search, Settings, SlidersHorizontal, Swords, Users } from 'lucide-react';
 import { useT, type TKey } from '@/i18n';
 import { ease } from '@/lib/motion';
+import { NukvahSigil } from '@/components/fx/NukvahSigil';
 
 const NAV: { section: TKey; items: { to: string; key: TKey; icon: typeof Search }[] }[] = [
   {
@@ -16,6 +17,7 @@ const NAV: { section: TKey; items: { to: string; key: TKey; icon: typeof Search 
     section: 'nav.sectionDominion',
     items: [
       { to: '/characters', key: 'nav.characters', icon: Users },
+      { to: '/builder', key: 'nav.builder', icon: SlidersHorizontal },
       { to: '/inventory', key: 'nav.inventory', icon: Package },
       { to: '/armory', key: 'nav.armory', icon: Swords },
       { to: '/world', key: 'nav.world', icon: Globe2 },
@@ -36,16 +38,11 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <nav aria-label="Primary" className="flex h-full flex-col">
       <div className="flex items-center gap-3 px-6 pt-7 pb-8">
-        <div className="relative grid h-10 w-10 place-items-center">
-          <svg viewBox="0 0 40 40" className="absolute inset-0" aria-hidden>
-            <circle cx="20" cy="20" r="18" fill="none" stroke="#e2c27d" strokeOpacity=".45" />
-            <path d="M20 3 L23.5 20 L20 37 L16.5 20 Z" fill="#e2c27d" />
-            <path d="M3 20 L20 16.5 L37 20 L20 23.5 Z" fill="#e2c27d" opacity=".55" />
-          </svg>
-          <span className="relative h-1.5 w-1.5 rounded-full bg-cyan shadow-[0_0_10px_#7ef0ff]" />
+        <div className="relative -my-3 -ml-3 h-16 w-16 shrink-0">
+          <NukvahSigil size={64} body={false} />
         </div>
         <div>
-          <div className="font-display text-lg tracking-[0.34em] text-gilded">NUKVA</div>
+          <div className="font-display text-lg tracking-[0.34em] text-gilded">NUKVAH</div>
           <div className="text-[10px] tracking-[0.2em] text-dim uppercase">{t('brand.tagline')}</div>
         </div>
       </div>
