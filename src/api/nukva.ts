@@ -1,5 +1,18 @@
 import { request, type Connection } from './client';
+import type { ServerPoint } from '@/lib/worldMap';
 import type { CommandInfo } from '@/data/types';
+import type {
+  ArtifactCatalogSet,
+  ArtifactPieceOptions,
+  CatalogCharacter,
+  CatalogItem,
+  CatalogWeapon,
+  GiveArtifactResult,
+  GiveItemsResult as GeneratedGiveItemsResult,
+  RouteInfo,
+} from './generated';
+
+export type { ArtifactCatalogSet, ArtifactPieceOptions, CatalogCharacter, CatalogItem, CatalogWeapon, GiveArtifactResult, RouteInfo };
 
 /** Capabilities the bridge reports; the UI only enables what is listed. */
 export type Capability =
@@ -22,8 +35,15 @@ export type Capability =
   | 'avatars.equip'
   | 'avatars.max'
   | 'items.edit'
-  // Not provided by the current bridge; listed so the UI can label them as unavailable.
-  | 'avatars.fetter';
+  | 'avatars.fetter'
+  | 'catalog.loaded'
+  | 'catalog.read'
+  | 'artifacts.read'
+  | 'artifacts.equip'
+  | 'artifacts.delete'
+  | 'artifacts.custom'
+  | 'world.points'
+  | 'world.teleport.point';
 
 export type Role = 'viewer' | 'operator' | 'admin';
 
@@ -46,6 +66,8 @@ export interface OnlinePlayer {
   adventureRank: number;
   worldLevel: number;
   sceneId: number;
+  /** False when nukva.json targets refuse writes to this UID. Absent on older servers. */
+  writable?: boolean;
 }
 
 export interface PlayerSummary extends OnlinePlayer {
@@ -54,6 +76,9 @@ export interface PlayerSummary extends OnlinePlayer {
   avatarCount: number;
   currencies: { primogems: number; mora: number; genesisCrystals: number };
   inventory: Record<string, number>;
+  /** Waypoints/statues the player unlocked in the current scene, and points the server knows there. */
+  unlockedPoints?: number;
+  scenePoints?: number;
 }
 
 export interface TalentLevel {
@@ -72,6 +97,8 @@ export interface OwnedAvatar {
   weapon: { guid?: string; itemId: number; level: number; promoteLevel: number; refinement: number } | null;
   artifacts: { guid?: string; itemId: number; slot: string; level: number; mainPropId: number; appendPropIds: number[] }[];
   rejected?: string[];
+  /** Set by the update endpoint when lowering constellations made the server reload the scene. */
+  sceneReloaded?: boolean;
   /** Set by the equip endpoint when the item was already on this character. */
   alreadyEquipped?: boolean;
 }
@@ -83,6 +110,8 @@ export interface InventoryItem {
   count: number;
   level: number;
   refinement?: number;
+  /** Weapons only. */
+  promoteLevel?: number;
   mainPropId?: number;
   appendPropIds?: number[];
   slot?: string;
@@ -119,10 +148,8 @@ export interface AuditEntry {
   message: string;
 }
 
-export interface GiveItemsResult {
-  success: boolean;
-  results: { itemId: number; type: string; requested: number; added: number; success: boolean; note?: string | null }[];
-}
+/** Per-item results; each item is verified by read-back (see GiveItemResult.verification). */
+export type GiveItemsResult = GeneratedGiveItemsResult;
 
 export interface ExecuteResult {
   command: string;
@@ -133,9 +160,13 @@ export interface ExecuteResult {
 
 export interface ItemPatch {
   level?: number;
+  /** Weapons: ascension, valid for the level (20/40/…/80 allow before or after ascending). */
+  promoteLevel?: number;
   refinement?: number;
   mainPropId?: number;
   appendPropIds?: number[];
+  /** 'custom': the final roll list is checked exactly like a custom creation. */
+  mode?: 'custom';
 }
 
 export const api = {
@@ -149,16 +180,17 @@ export const api = {
   commands: (c: Connection) => request<CommandInfo[]>(c, 'GET', '/commands'),
   audit: (c: Connection, limit = 30) => request<AuditEntry[]>(c, 'GET', `/audit?limit=${limit}`),
 
-  grantAvatar: (c: Connection, uid: number, body: { avatarId: number; level: number; constellation: number; talentLevel: number }) =>
+  grantAvatar: (c: Connection, uid: number, body: { avatarId: number; level: number; promoteLevel?: number; constellation: number; talentLevel?: number; normal?: number; skill?: number; burst?: number }) =>
     request<OwnedAvatar>(c, 'POST', `/players/${uid}/avatars`, body),
   updateAvatar: (
     c: Connection,
     uid: number,
     avatarId: number,
-    body: { level?: number; constellation?: number; normal?: number; skill?: number; burst?: number },
+    body: { level?: number; promoteLevel?: number; constellation?: number; normal?: number; skill?: number; burst?: number; fetter?: number },
   ) => request<OwnedAvatar>(c, 'PATCH', `/players/${uid}/avatars/${avatarId}`, body),
-  equipItem: (c: Connection, uid: number, avatarId: number, guid: string) =>
-    request<OwnedAvatar>(c, 'POST', `/players/${uid}/avatars/${avatarId}/equip`, { guid }),
+  /** replace: confirm that an artifact already in the slot goes back to the bag (else SLOT_OCCUPIED). */
+  equipItem: (c: Connection, uid: number, avatarId: number, guid: string, replace = false) =>
+    request<OwnedAvatar>(c, 'POST', `/players/${uid}/avatars/${avatarId}/equip`, replace ? { guid, replace } : { guid }),
   unequipItem: (c: Connection, uid: number, avatarId: number, slot: string) =>
     request<OwnedAvatar>(c, 'POST', `/players/${uid}/avatars/${avatarId}/unequip`, { slot }),
   patchItem: (c: Connection, uid: number, guid: string, body: ItemPatch) =>
@@ -166,17 +198,35 @@ export const api = {
   /** With apply false the server only returns the plan and writes nothing. */
   maxAvatar: (c: Connection, uid: number, avatarId: number, apply: boolean) =>
     request<MaxResult>(c, 'POST', `/players/${uid}/avatars/${avatarId}/max`, { apply }),
-  giveItems: (c: Connection, uid: number, items: { itemId: number; amount: number; level?: number; refinement?: number }[]) =>
+  giveItems: (c: Connection, uid: number, items: { itemId: number; amount: number; level?: number; promoteLevel?: number; refinement?: number }[]) =>
     request<GiveItemsResult>(c, 'POST', `/players/${uid}/items`, { items }),
   giveArtifact: (
     c: Connection,
     uid: number,
-    body: { itemId: number; level: number; mainPropId?: number; appendPropIds: number[]; amount?: number },
-  ) => request<{ itemId: number; requested: number; added: number; success: boolean; rolls: number; expectedRolls: number }>(c, 'POST', `/players/${uid}/artifacts`, body),
+    body: { itemId: number; level: number; mainPropId?: number; appendPropIds?: number[]; amount?: number; mode?: 'normal' | 'custom'; initialSubstats?: number },
+  ) => request<GiveArtifactResult>(c, 'POST', `/players/${uid}/artifacts`, body),
+  /** Deletes an unequipped artifact; the guid is repeated as confirmation. */
+  deleteItem: (c: Connection, uid: number, guid: string) =>
+    request<{ deleted: InventoryItem; success: boolean }>(c, 'DELETE', `/players/${uid}/items/${guid}?confirm=${encodeURIComponent(guid)}`),
+  /** Equips an owned artifact (by guid) on a character; the read-back must show it in the slot. */
+  equipArtifact: (c: Connection, uid: number, guid: string, avatarId: number, replace = false) =>
+    request<OwnedAvatar>(c, 'POST', `/players/${uid}/artifacts/${guid}/equip`, replace ? { avatarId, replace } : { avatarId }),
+  playerArtifacts: (c: Connection, uid: number) => request<InventoryItem[]>(c, 'GET', `/players/${uid}/artifacts`),
+  catalogCharacters: (c: Connection) => request<CatalogCharacter[]>(c, 'GET', '/catalog/characters'),
+  catalogItems: (c: Connection, type?: string) =>
+    request<CatalogItem[]>(c, 'GET', `/catalog/items${type ? `?type=${encodeURIComponent(type)}` : ''}`),
+  catalogWeapons: (c: Connection) => request<CatalogWeapon[]>(c, 'GET', '/catalog/weapons'),
+  artifactCatalog: (c: Connection) => request<ArtifactCatalogSet[]>(c, 'GET', '/artifacts/catalog'),
+  /** Server-side rules for one artifact piece: allowed main stats, substat rolls, levels. */
+  artifactOptions: (c: Connection, itemId: number) => request<ArtifactPieceOptions>(c, 'GET', `/artifacts/pieces/${itemId}/options`),
+  routes: (c: Connection) => request<RouteInfo[]>(c, 'GET', '/routes'),
   setWorldLevel: (c: Connection, uid: number, worldLevel: number) =>
     request<{ worldLevel: number; success: boolean }>(c, 'POST', `/players/${uid}/world-level`, { worldLevel }),
-  teleport: (c: Connection, uid: number, body: { sceneId: number; x?: number; y?: number; z?: number }) =>
-    request<{ sceneId: number; success: boolean }>(c, 'POST', `/players/${uid}/teleport`, body),
+  /** pointId: the server resolves the point from its own data and lands on its tranPos (never sent with x/y/z). */
+  teleport: (c: Connection, uid: number, body: { sceneId: number; pointId?: number; x?: number; y?: number; z?: number }) =>
+    request<{ sceneId: number; success: boolean; position?: { x: number; y: number; z: number }; destination?: { x: number; y: number; z: number }; point?: ServerPoint }>(c, 'POST', `/players/${uid}/teleport`, body),
+  scenes: (c: Connection) => request<{ sceneId: number; type: string | null; points: number }[]>(c, 'GET', '/scenes'),
+  scenePoints: (c: Connection, sceneId: number) => request<{ sceneId: number; points: ServerPoint[] }>(c, 'GET', `/scenes/${sceneId}/points`),
   spawn: (c: Connection, uid: number, body: { monsterId: number; amount: number; level: number }) =>
     request<{ monsterId: number; spawned: number; success: boolean }>(c, 'POST', `/players/${uid}/spawn`, body),
   execute: (c: Connection, uid: number, command: string) => request<ExecuteResult>(c, 'POST', '/commands/execute', { uid, command }),
@@ -188,6 +238,9 @@ export const CAPABILITY_ROLE: Partial<Record<Capability, Role>> = {
   'avatars.level': 'operator',
   'avatars.constellation': 'operator',
   'avatars.talents': 'operator',
+  'avatars.fetter': 'operator',
+  'artifacts.equip': 'operator',
+  'artifacts.delete': 'operator',
   'avatars.equip': 'operator',
   'avatars.max': 'operator',
   'items.edit': 'operator',

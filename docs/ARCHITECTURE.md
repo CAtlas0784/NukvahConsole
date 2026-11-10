@@ -47,8 +47,9 @@ All responses: `{ "ok": true, "data": … }` or `{ "ok": false, "error": { "code
 | GET | `/players/{uid}/inventory?type=` | viewer | items (≤ 5000) |
 | GET | `/commands` | viewer | from `CommandMap` annotations + language file |
 | GET | `/audit?limit=` | viewer | recent audit entries (memory ring, 200) |
+| GET | `/catalog/loaded` | viewer | ids the server actually loaded (avatars, costumes, items by type, artifact sets, monsters, scenes, gadget count, scene points per scene). Used by `npm run catalog:validate` |
 | POST | `/players/{uid}/avatars` | operator | grant `{avatarId, level, constellation, talentLevel}`; 409 if owned |
-| PATCH | `/players/{uid}/avatars/{avatarId}` | operator | `{level?, constellation?, normal?, skill?, burst?}`; returns `rejected[]` |
+| PATCH | `/players/{uid}/avatars/{avatarId}` | operator | `{level?, constellation?, normal?, skill?, burst?, fetter?}`; returns `rejected[]`, `sceneReloaded` (true when lowering constellations reloaded the scene, as `setconst` does) |
 | POST | `/players/{uid}/items` | operator | `{items:[{itemId, amount, level?, refinement?}]}`; weapons/artifacts unstackable |
 | POST | `/players/{uid}/artifacts` | operator | `{itemId, level, mainPropId?, appendPropIds[], amount?}`; depot-validated |
 | POST | `/players/{uid}/world-level` | operator | `{worldLevel 0–9}`; verified read-back |

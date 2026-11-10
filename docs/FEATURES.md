@@ -34,7 +34,7 @@ bookmarks, local operation history, EN/TH, reduced motion, preview mode.
 | Feature | Why |
 |---|---|
 | Equip a weapon/artifact onto a character from the console | Needs a bridge endpoint wrapping `Avatar.equipItem` + inventory GUID selection |
-| Set friendship (fetter) level | Not exposed yet (`SetFetterLevelCommand` exists in the server) |
+| Set friendship (fetter) level from the UI | Bridge supports it since 2026-11-09 (`PATCH …/avatars/{id}` `{fetter}`); no Console control yet |
 | Ascension phase independent of level | Bridge derives it from level, like the give command |
 | Acting on offline players | Offline players' avatars/inventory aren't loaded; editing the DB directly is forbidden by design |
 | Named teleport waypoints | Waypoint names aren't present in the available resources (point files are hashed); use scenes + saved coordinates |

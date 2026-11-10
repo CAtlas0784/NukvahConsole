@@ -33,11 +33,11 @@ function planSteps(preset: Preset): { capability: Capability; steps: { label: st
             run: async (c, uid) => {
               const owned = (await api.avatars(c, uid)).find((a) => a.avatarId === p.avatarId);
               if (!owned) {
-                await api.grantAvatar(c, uid, { avatarId: p.avatarId, level: p.level, constellation: p.constellation, talentLevel: p.talents.normal });
+                await api.grantAvatar(c, uid, { avatarId: p.avatarId, level: p.level, promoteLevel: p.promoteLevel, constellation: p.constellation, normal: p.talents.normal, skill: p.talents.skill, burst: p.talents.burst });
                 const r = await api.updateAvatar(c, uid, p.avatarId, { skill: p.talents.skill, burst: p.talents.burst });
                 return `granted · Lv${r.level} C${r.constellation}${r.rejected?.length ? ` · rejected ${r.rejected.join(',')}` : ''}`;
               }
-              const r = await api.updateAvatar(c, uid, p.avatarId, { level: p.level, constellation: p.constellation, ...p.talents });
+              const r = await api.updateAvatar(c, uid, p.avatarId, { level: p.level, promoteLevel: p.promoteLevel, constellation: p.constellation, ...p.talents });
               if (r.rejected?.length) throw new Error(`rejected: ${r.rejected.join(', ')}`);
               return `updated · Lv${r.level} C${r.constellation}`;
             },
@@ -53,7 +53,7 @@ function planSteps(preset: Preset): { capability: Capability; steps: { label: st
         steps.push({
           label: `weapon #${w.itemId}`,
           run: async (c, uid) => {
-            const r = await api.giveItems(c, uid, [{ itemId: w.itemId, amount: 1, level: w.level, refinement: w.refinement }]);
+            const r = await api.giveItems(c, uid, [{ itemId: w.itemId, amount: 1, level: w.level, promoteLevel: w.promoteLevel, refinement: w.refinement }]);
             if (!r.success) throw new Error('server added nothing');
             return `Lv${w.level} R${w.refinement}`;
           },
@@ -63,7 +63,14 @@ function planSteps(preset: Preset): { capability: Capability; steps: { label: st
         steps.push({
           label: `artifact #${a.itemId}`,
           run: async (c, uid) => {
-            const r = await api.giveArtifact(c, uid, { itemId: a.itemId, level: a.level, ...(a.mainPropId ? { mainPropId: a.mainPropId } : {}), appendPropIds: a.appendPropIds });
+            const r = await api.giveArtifact(c, uid, {
+              itemId: a.itemId,
+              level: a.level,
+              ...(a.mainPropId ? { mainPropId: a.mainPropId } : {}),
+              // Presets saved by the artifact builder replay in the same mode; older presets keep the legacy fill.
+              ...(a.mode === 'normal' ? { mode: 'normal' as const, ...(a.initialSubstats !== undefined ? { initialSubstats: a.initialSubstats } : {}) } : { appendPropIds: a.appendPropIds }),
+              ...(a.mode === 'custom' ? { mode: 'custom' as const } : {}),
+            });
             if (!r.success) throw new Error('server added nothing');
             return `+${a.level - 1}`;
           },

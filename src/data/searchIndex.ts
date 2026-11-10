@@ -61,7 +61,7 @@ export async function buildCatalogIndex(pageTitle: (key: string) => { en: string
     });
   }
   for (const w of weapons as Weapon[]) {
-    docs.push({ kind: 'weapon', id: w.id, title: w.name, subtitle: w.type, terms: [w.type, 'weapon', w.icon.replace('UI_EquipIcon_', '')], rarity: w.rarity, icon: w.icon, weight: 5, ref: w });
+    docs.push({ kind: 'weapon', id: w.id, title: w.name, subtitle: w.type, terms: [w.type, 'weapon', (w.icon ?? w.gameIcon ?? '').replace('UI_EquipIcon_', '')], rarity: w.rarity, icon: w.icon, weight: 5, ref: w });
   }
   for (const s of (artifacts as { sets: ArtifactSet[] }).sets) {
     const pieceNames = Object.values(s.pieces).flatMap((list) => (list ?? []).slice(0, 1).map((p) => p.name.en));

@@ -1,11 +1,11 @@
-import { useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Loader2, ShieldCheck } from 'lucide-react';
 import { Modal } from './Overlay';
 import { DenialNotice } from './Primitives';
 import { useT } from '@/i18n';
 import { useCapability, useConnection, useSession } from '@/stores/session';
 import { runOperation, type OpStatus } from '@/stores/ops';
-import { API_PREFIX, type Connection } from '@/api/client';
+import { API_PREFIX, newOperationKey, type Connection } from '@/api/client';
 import type { Capability } from '@/api/nukva';
 
 export interface OperationSpec<T> {
@@ -14,7 +14,7 @@ export interface OperationSpec<T> {
   action: string;
   summary: string;
   lines: { label: string; value: ReactNode }[];
-  request: { method: 'POST' | 'PATCH'; path: string; body: unknown };
+  request: { method: 'POST' | 'PATCH' | 'DELETE'; path: string; body: unknown };
   run: (conn: Connection, uid: number) => Promise<T>;
   judge?: (result: T) => { status: OpStatus; detail?: string };
   requiresPlayer?: boolean;
@@ -32,6 +32,10 @@ export function OperationDialog<T>({ spec, onClose, onDone }: { spec: OperationS
   const uid = useSession((s) => s.uid);
   const cap = useCapability(spec?.capability ?? 'players.read');
   const [busy, setBusy] = useState(false);
+  // One key per opened operation: pressing Confirm again after a dropped connection reuses it, so
+  // the server answers from its stored result instead of applying the change twice.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const operationKey = useMemo(() => newOperationKey(), [spec]);
   const needsPlayer = spec?.requiresPlayer !== false;
   const blocked = !cap.allowed || (needsPlayer && !uid) || !conn;
 
@@ -44,6 +48,7 @@ export function OperationDialog<T>({ spec, onClose, onDone }: { spec: OperationS
       summary: spec.summary,
       run: () => spec.run(conn, uid ?? 0),
       judge: spec.judge,
+      idempotencyKey: operationKey,
       labels: { success: spec.successLabel ?? t('op.success'), failed: t('op.failed'), partial: t('op.partial') },
     });
     setBusy(false);

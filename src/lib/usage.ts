@@ -54,6 +54,11 @@ export function parseUsage(usage: string): UsagePart[] {
       parts.push({ type: 'arg', name: rest ? `${name}${rest.replace(/[<>[\]]/g, '')}` : name, prefix, optional, repeat, key: `p${n++}` });
       continue;
     }
+    // Bare words written without <> are values when they name an id ("[sceneId]", "[uid]"), else flags ("[all]").
+    if (optional && /id$/i.test(token)) {
+      parts.push({ type: 'arg', name: token, prefix: '', optional: true, repeat, key: `p${n++}` });
+      continue;
+    }
     if (optional) {
       parts.push({ type: 'arg', name: token, prefix: '', optional: true, repeat, key: `p${n++}`, flag: true });
       continue;

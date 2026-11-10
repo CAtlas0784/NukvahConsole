@@ -1,0 +1,202 @@
+[
+ {
+  "method": "GET",
+  "write": false,
+  "role": "viewer",
+  "path": "/nukva/v1/status"
+ },
+ {
+  "method": "GET",
+  "write": false,
+  "role": "viewer",
+  "path": "/nukva/v1/players"
+ },
+ {
+  "method": "GET",
+  "write": false,
+  "role": "viewer",
+  "path": "/nukva/v1/players/{uid}"
+ },
+ {
+  "method": "GET",
+  "write": false,
+  "role": "viewer",
+  "path": "/nukva/v1/players/{uid}/avatars"
+ },
+ {
+  "method": "GET",
+  "write": false,
+  "role": "viewer",
+  "path": "/nukva/v1/players/{uid}/inventory"
+ },
+ {
+  "method": "GET",
+  "write": false,
+  "role": "viewer",
+  "path": "/nukva/v1/commands"
+ },
+ {
+  "method": "GET",
+  "write": false,
+  "role": "viewer",
+  "path": "/nukva/v1/catalog/loaded"
+ },
+ {
+  "method": "GET",
+  "write": false,
+  "role": "viewer",
+  "path": "/nukva/v1/scenes"
+ },
+ {
+  "method": "GET",
+  "write": false,
+  "role": "viewer",
+  "path": "/nukva/v1/scenes/{sceneId}/points"
+ },
+ {
+  "method": "GET",
+  "write": false,
+  "role": "viewer",
+  "path": "/nukva/v1/catalog/characters"
+ },
+ {
+  "method": "GET",
+  "write": false,
+  "role": "viewer",
+  "path": "/nukva/v1/catalog/items"
+ },
+ {
+  "method": "GET",
+  "write": false,
+  "role": "viewer",
+  "path": "/nukva/v1/catalog/weapons"
+ },
+ {
+  "method": "GET",
+  "write": false,
+  "role": "viewer",
+  "path": "/nukva/v1/artifacts/catalog"
+ },
+ {
+  "method": "GET",
+  "write": false,
+  "role": "viewer",
+  "path": "/nukva/v1/artifacts/pieces/{itemId}/options"
+ },
+ {
+  "method": "GET",
+  "write": false,
+  "role": "viewer",
+  "path": "/nukva/v1/players/{uid}/artifacts"
+ },
+ {
+  "method": "GET",
+  "write": false,
+  "role": "viewer",
+  "path": "/nukva/v1/routes"
+ },
+ {
+  "method": "GET",
+  "write": false,
+  "role": "viewer",
+  "path": "/nukva/v1/audit"
+ },
+ {
+  "path": "/nukva/v1/players/{uid}/avatars",
+  "audit": "avatar.grant",
+  "write": true,
+  "method": "POST",
+  "role": "operator"
+ },
+ {
+  "path": "/nukva/v1/players/{uid}/avatars/{avatarId}",
+  "audit": "avatar.update",
+  "write": true,
+  "method": "PATCH",
+  "role": "operator"
+ },
+ {
+  "path": "/nukva/v1/players/{uid}/avatars/{avatarId}/equip",
+  "audit": "avatar.equip",
+  "write": true,
+  "method": "POST",
+  "role": "operator"
+ },
+ {
+  "path": "/nukva/v1/players/{uid}/avatars/{avatarId}/unequip",
+  "audit": "avatar.unequip",
+  "write": true,
+  "method": "POST",
+  "role": "operator"
+ },
+ {
+  "path": "/nukva/v1/players/{uid}/avatars/{avatarId}/max",
+  "audit": "avatar.max",
+  "write": true,
+  "method": "POST",
+  "role": "operator"
+ },
+ {
+  "path": "/nukva/v1/players/{uid}/items/{guid}",
+  "audit": "item.update",
+  "write": true,
+  "method": "PATCH",
+  "role": "operator"
+ },
+ {
+  "path": "/nukva/v1/players/{uid}/items/{guid}",
+  "audit": "item.delete",
+  "write": true,
+  "method": "DELETE",
+  "role": "operator"
+ },
+ {
+  "path": "/nukva/v1/players/{uid}/items",
+  "audit": "items.give",
+  "write": true,
+  "method": "POST",
+  "role": "operator"
+ },
+ {
+  "path": "/nukva/v1/players/{uid}/artifacts",
+  "audit": "artifact.give",
+  "write": true,
+  "method": "POST",
+  "role": "operator"
+ },
+ {
+  "path": "/nukva/v1/players/{uid}/artifacts/{guid}/equip",
+  "audit": "artifact.equip",
+  "write": true,
+  "method": "POST",
+  "role": "operator"
+ },
+ {
+  "path": "/nukva/v1/players/{uid}/world-level",
+  "audit": "world.level",
+  "write": true,
+  "method": "POST",
+  "role": "operator"
+ },
+ {
+  "path": "/nukva/v1/players/{uid}/teleport",
+  "audit": "world.teleport",
+  "write": true,
+  "method": "POST",
+  "role": "operator"
+ },
+ {
+  "path": "/nukva/v1/players/{uid}/spawn",
+  "audit": "world.spawn",
+  "write": true,
+  "method": "POST",
+  "role": "operator"
+ },
+ {
+  "path": "/nukva/v1/commands/execute",
+  "audit": "command.execute",
+  "write": true,
+  "method": "POST",
+  "role": "admin"
+ }
+]

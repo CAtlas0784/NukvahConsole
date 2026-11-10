@@ -19,6 +19,15 @@ interface SettingsState {
 
 const defaultLang: Lang = typeof navigator !== 'undefined' && navigator.language?.toLowerCase().startsWith('th') ? 'th' : 'en';
 
+/** Local icon cache served by the dev/preview server (see `npm run assets`). */
+export const LOCAL_ASSET_BASE = `${import.meta.env.BASE_URL ?? '/'}game-assets`;
+
+/**
+ * Where artwork is loaded from: the operator's own URL when set in Settings, otherwise the local
+ * cache. A missing image falls back to the generated sigil, so a build without the cache still works.
+ */
+export const useAssetBase = () => useSettings((s) => s.assetBase || LOCAL_ASSET_BASE);
+
 export const useSettings = create<SettingsState>()(
   persist(
     (set) => ({

@@ -6,12 +6,14 @@ export const PRESET_SCHEMA = 1;
 export interface CharacterPayload {
   avatarId: number;
   level: number;
+  /** Ascension (0-6); absent in older presets: the lowest valid one for the level. */
+  promoteLevel?: number;
   constellation: number;
   talents: { normal: number; skill: number; burst: number };
 }
 export interface EquipmentPayload {
-  weapon: { itemId: number; level: number; refinement: number } | null;
-  artifacts: { itemId: number; level: number; mainPropId: number | null; appendPropIds: number[] }[];
+  weapon: { itemId: number; level: number; promoteLevel?: number; refinement: number } | null;
+  artifacts: { itemId: number; level: number; mainPropId: number | null; appendPropIds: number[]; mode?: 'normal' | 'custom'; initialSubstats?: number }[];
 }
 export interface BundlePayload {
   items: { itemId: number; amount: number }[];
@@ -49,6 +51,7 @@ function checkPayload(kind: string, p: unknown): string | null {
     if (!isInt(p.avatarId, 1, 99_999_999)) return 'avatarId must be an integer';
     if (!isInt(p.level, 1, 90)) return 'level must be 1–90';
     if (!isInt(p.constellation, 0, 6)) return 'constellation must be 0–6';
+    if (p.promoteLevel !== undefined && !isInt(p.promoteLevel, 0, 6)) return 'promoteLevel must be 0–6';
     const t = p.talents;
     if (!isObj(t) || !isInt(t.normal, 1, 15) || !isInt(t.skill, 1, 15) || !isInt(t.burst, 1, 15)) return 'talents must be 1–15';
     return null;
@@ -59,6 +62,7 @@ function checkPayload(kind: string, p: unknown): string | null {
       if (!isObj(w) || !isInt(w.itemId, 1, 99_999_999) || !isInt(w.level, 1, 90) || !isInt(w.refinement, 1, 5)) {
         return 'weapon needs itemId, level 1–90 and refinement 1–5';
       }
+      if (w.promoteLevel !== undefined && !isInt(w.promoteLevel, 0, 6)) return 'weapon promoteLevel must be 0–6';
     }
     if (!Array.isArray(p.artifacts) || p.artifacts.length > 5) return 'artifacts must be a list of at most 5';
     for (const a of p.artifacts) {
@@ -67,6 +71,8 @@ function checkPayload(kind: string, p: unknown): string | null {
       if (!Array.isArray(a.appendPropIds) || a.appendPropIds.length > 9 || !a.appendPropIds.every((x) => isInt(x, 1, 99_999_999))) {
         return 'appendPropIds must be up to 9 integers';
       }
+      if (a.mode !== undefined && a.mode !== 'normal' && a.mode !== 'custom') return 'mode must be normal or custom';
+      if (a.initialSubstats !== undefined && !isInt(a.initialSubstats, 0, 4)) return 'initialSubstats must be 0–4';
     }
     if (!p.weapon && p.artifacts.length === 0) return 'equipment preset is empty';
     return null;

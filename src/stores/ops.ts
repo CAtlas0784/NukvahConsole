@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { safeStorage } from '@/lib/storage';
-import { ApiError } from '@/api/client';
+import { ApiError, newOperationKey, withIdempotency } from '@/api/client';
 
 export type OpStatus = 'success' | 'failed' | 'partial';
 
@@ -58,8 +58,18 @@ export const useToasts = create<ToastState>()((set, get) => ({
   dismiss: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
 }));
 
+/**
+ * Bumped after every write attempt, successful or not. Every live data hook re-reads the server
+ * when it changes, so the screen always shows the server's state after an operation (a failed
+ * or partial write may still have changed something).
+ */
+export const useDataVersion = create<{ version: number; bump: () => void }>()((set) => ({
+  version: 0,
+  bump: () => set((s) => ({ version: s.version + 1 })),
+}));
+
 export function describeError(error: unknown): string {
-  if (error instanceof ApiError) return `${error.code}: ${error.message}`;
+  if (error instanceof ApiError) return `${error.code}${error.detail ? ` (${error.detail})` : ''}: ${error.message}`;
   if (error instanceof Error) return error.message;
   return String(error);
 }
@@ -75,11 +85,13 @@ export async function runOperation<T>(opts: {
   run: () => Promise<T>;
   judge?: (result: T) => { status: OpStatus; detail?: string };
   labels: { success: string; failed: string; partial: string };
+  /** Reuse the same key when the user retries the same operation (see withIdempotency). */
+  idempotencyKey?: string;
 }): Promise<{ ok: boolean; result?: T; error?: unknown }> {
   const { push } = useOps.getState();
   const { show } = useToasts.getState();
   try {
-    const result = await opts.run();
+    const result = await withIdempotency(opts.idempotencyKey ?? newOperationKey(), opts.run);
     const verdict = opts.judge ? opts.judge(result) : { status: 'success' as const };
     push({ action: opts.action, uid: opts.uid, summary: opts.summary, status: verdict.status, detail: verdict.detail ?? '' });
     show({
@@ -93,5 +105,7 @@ export async function runOperation<T>(opts: {
     push({ action: opts.action, uid: opts.uid, summary: opts.summary, status: 'failed', detail });
     show({ tone: 'error', title: opts.labels.failed, body: detail });
     return { ok: false, error };
+  } finally {
+    useDataVersion.getState().bump();
   }
 }
