@@ -1,0 +1,140 @@
+{
+  "at": "2026-11-11T12:07:59.242Z",
+  "bridge": "http://127.0.0.1:18088",
+  "uid": 10171,
+  "passed": 13,
+  "total": 13,
+  "results": [
+    {
+      "name": "command metadata comes from the server and matches the generated snapshot",
+      "ok": true,
+      "detail": {
+        "live": 61,
+        "executable": 50
+      }
+    },
+    {
+      "name": "allowlisted command runs on the chosen player and its effect reads back",
+      "ok": true,
+      "detail": {
+        "moraDelta": 321,
+        "output": []
+      }
+    },
+    {
+      "name": "a command with feedback returns the server output",
+      "ok": true,
+      "detail": {
+        "output": [
+          "All characters have been healed."
+        ]
+      }
+    },
+    {
+      "name": "refusals carry exact codes: not allowlisted, unknown, explicit target, offline player",
+      "ok": true,
+      "detail": {
+        "codes": [
+          "COMMAND_NOT_ALLOWED",
+          "UNKNOWN_COMMAND",
+          "INVALID_COMMAND",
+          "PERMISSION_DENIED",
+          "PLAYER_OFFLINE"
+        ]
+      }
+    },
+    {
+      "name": "teleport to a catalog teleport point lands at its coordinates",
+      "ok": true,
+      "detail": {
+        "point": "3:744",
+        "area": "Gavireh Lajavard",
+        "distance": 0
+      }
+    },
+    {
+      "name": "teleport into another scene from the catalog, then back",
+      "ok": true,
+      "detail": {
+        "scene": 4,
+        "outcome": "moved"
+      }
+    },
+    {
+      "name": "invalid teleport targets are refused",
+      "ok": true,
+      "detail": {
+        "nan": "INVALID_JSON"
+      }
+    },
+    {
+      "name": "server loads the 7.2 scene points (the locked-map root cause)",
+      "ok": true,
+      "detail": {
+        "total": 4680,
+        "scenes": 2181,
+        "scene3": 1619,
+        "types": {
+          "DungeonEntry": 304,
+          "DungeonExit": 296,
+          "SceneTransPoint": 638,
+          "PersonalSceneJumpPoint": 62,
+          "SceneBuildingPoint": 187,
+          "SceneVehicleSummonPoint": 41,
+          "VirtualTransPoint": 82,
+          "MAOMKOLDOBG": 9
+        }
+      }
+    },
+    {
+      "name": "catalog teleport points match the server data (same id, type, position)",
+      "ok": true,
+      "detail": {
+        "catalog": 1086,
+        "verified": 1086
+      }
+    },
+    {
+      "name": "teleport by point id lands on the server tranPos, read back",
+      "ok": true,
+      "detail": {
+        "pointId": 606,
+        "areaId": 20,
+        "distance": 0,
+        "unlockedPoints": 1,
+        "scenePoints": 1619
+      }
+    },
+    {
+      "name": "teleport refusals: unknown point, point + coordinates, out of bounds, partial coordinates",
+      "ok": true,
+      "detail": {
+        "codes": [
+          "POINT_NOT_FOUND",
+          "INVALID_POSITION",
+          "OUT_OF_BOUNDS",
+          "INVALID_POSITION"
+        ]
+      }
+    },
+    {
+      "name": "player list marks UIDs the bridge refuses (for UID completion)",
+      "ok": true,
+      "detail": {
+        "players": [
+          {
+            "uid": 10171,
+            "writable": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "a stopped server is reported as a network failure, not success",
+      "ok": true,
+      "detail": {
+        "unreachable": true
+      }
+    }
+  ]
+}
