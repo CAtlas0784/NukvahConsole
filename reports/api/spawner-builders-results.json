@@ -1,0 +1,183 @@
+{
+  "ranAt": "2026-11-11T12:07:45.250Z",
+  "bridge": "http://127.0.0.1:18088",
+  "uid": 10171,
+  "passed": 18,
+  "total": 18,
+  "results": [
+    {
+      "name": "server spawn catalog: classification, stack limits, reasons",
+      "ok": true,
+      "ms": 179,
+      "evidence": {
+        "serverItems": 16981,
+        "checked": 11997,
+        "mismatches": 0
+      }
+    },
+    {
+      "name": "stackable item: added and verified by count",
+      "ok": true,
+      "ms": 2373,
+      "evidence": {
+        "before": 7,
+        "after": 107
+      }
+    },
+    {
+      "name": "stack limit: refused with the addable amount, nothing changes",
+      "ok": true,
+      "ms": 5001,
+      "evidence": {
+        "current": 107,
+        "limit": 99999
+      }
+    },
+    {
+      "name": "currency: Mora added and verified",
+      "ok": true,
+      "ms": 2998,
+      "evidence": {
+        "before": 2911,
+        "after": 15256
+      }
+    },
+    {
+      "name": "non-stackable weapon: independent instances with level, ascension, refinement",
+      "ok": true,
+      "ms": 2318,
+      "evidence": {
+        "guids": [
+          "43684112367656",
+          "43684112367657"
+        ],
+        "storeItemChangeNotify": 2
+      }
+    },
+    {
+      "name": "weapon rules: ascension, level cap and refinement per weapon",
+      "ok": true,
+      "ms": 4683,
+      "evidence": {
+        "allowedAt50": [
+          2,
+          3
+        ],
+        "dullMax": 70
+      }
+    },
+    {
+      "name": "multiple items in one request, all read back",
+      "ok": true,
+      "ms": 6999,
+      "evidence": {
+        "lines": 3
+      }
+    },
+    {
+      "name": "invalid item ids and unsupported items: refused, nothing applied",
+      "ok": true,
+      "ms": 1999,
+      "evidence": {
+        "avatarCard": 1002,
+        "consumedOnGain": 2001
+      }
+    },
+    {
+      "name": "unlocks: namecard and glider verified on the player, second give refused",
+      "ok": true,
+      "ms": 3004,
+      "evidence": {
+        "namecard": 210002,
+        "glider": 140002
+      }
+    },
+    {
+      "name": "unauthorized UIDs are refused",
+      "ok": true,
+      "ms": 5,
+      "evidence": {
+        "denied": [
+          10004,
+          77777
+        ]
+      }
+    },
+    {
+      "name": "duplicate request with the same Idempotency-Key is applied once",
+      "ok": true,
+      "ms": 2992,
+      "evidence": {
+        "before": 117,
+        "after": 124,
+        "replayed": "true"
+      }
+    },
+    {
+      "name": "furniture: store a supported stack and refuse a zero-capacity item before applying the batch",
+      "ok": true,
+      "ms": 3999,
+      "evidence": {
+        "stored": 360101,
+        "rejected": 360001
+      }
+    },
+    {
+      "name": "capacity: weapon tab and furniture tab full -> INVENTORY_FULL, nothing added",
+      "ok": true,
+      "ms": 6000,
+      "evidence": {
+        "weaponTab": 8,
+        "weaponError": "Not enough space for 50 ITEM_WEAPON (free: 22 of 30).",
+        "furniture": "Not enough space for 5 ITEM_FURNITURE (free: 4 of 5)."
+      }
+    },
+    {
+      "name": "character unlock with level, ascension, constellation and talents",
+      "ok": true,
+      "ms": 4311,
+      "evidence": {
+        "avatarId": 10000096,
+        "name": "Arlecchino",
+        "addNoGachaAvatarCardNotify": true
+      }
+    },
+    {
+      "name": "character modification: ascension at a breakpoint, invalid ascension, undo",
+      "ok": true,
+      "ms": 3820,
+      "evidence": {
+        "breakpoint": "80/80 <-> 80/90",
+        "undo": "ok"
+      }
+    },
+    {
+      "name": "non-playable and incomplete characters are refused with a reason",
+      "ok": true,
+      "ms": 4,
+      "evidence": {
+        "unreleased": "NO_PROMOTE_DATA",
+        "nonPlayable": "UNSUPPORTED_OPERATION"
+      }
+    },
+    {
+      "name": "weapon creation and equipment: compatible only, read back in the slot",
+      "ok": true,
+      "ms": 9168,
+      "evidence": {
+        "equipped": "43684112367665",
+        "avatarEquipChangeNotify": true
+      }
+    },
+    {
+      "name": "one-click max respects the weapon own cap (1-star: Lv70 R1)",
+      "ok": true,
+      "ms": 4709,
+      "evidence": {
+        "avatar": 10000002,
+        "hero": 10000096,
+        "weapon": "Lv70 R1"
+      }
+    }
+  ]
+}

@@ -1,105 +1,105 @@
 [
  {
-  "method": "GET",
   "write": false,
   "role": "viewer",
-  "path": "/nukva/v1/status"
+  "path": "/nukva/v1/status",
+  "method": "GET"
  },
  {
-  "method": "GET",
   "write": false,
   "role": "viewer",
-  "path": "/nukva/v1/players"
+  "path": "/nukva/v1/players",
+  "method": "GET"
  },
  {
-  "method": "GET",
   "write": false,
   "role": "viewer",
-  "path": "/nukva/v1/players/{uid}"
+  "path": "/nukva/v1/players/{uid}",
+  "method": "GET"
  },
  {
-  "method": "GET",
   "write": false,
   "role": "viewer",
-  "path": "/nukva/v1/players/{uid}/avatars"
+  "path": "/nukva/v1/players/{uid}/avatars",
+  "method": "GET"
  },
  {
-  "method": "GET",
   "write": false,
   "role": "viewer",
-  "path": "/nukva/v1/players/{uid}/inventory"
+  "path": "/nukva/v1/players/{uid}/inventory",
+  "method": "GET"
  },
  {
-  "method": "GET",
   "write": false,
   "role": "viewer",
-  "path": "/nukva/v1/commands"
+  "path": "/nukva/v1/commands",
+  "method": "GET"
  },
  {
-  "method": "GET",
   "write": false,
   "role": "viewer",
-  "path": "/nukva/v1/catalog/loaded"
+  "path": "/nukva/v1/catalog/loaded",
+  "method": "GET"
  },
  {
-  "method": "GET",
   "write": false,
   "role": "viewer",
-  "path": "/nukva/v1/scenes"
+  "path": "/nukva/v1/scenes",
+  "method": "GET"
  },
  {
-  "method": "GET",
   "write": false,
   "role": "viewer",
-  "path": "/nukva/v1/scenes/{sceneId}/points"
+  "path": "/nukva/v1/scenes/{sceneId}/points",
+  "method": "GET"
  },
  {
-  "method": "GET",
   "write": false,
   "role": "viewer",
-  "path": "/nukva/v1/catalog/characters"
+  "path": "/nukva/v1/catalog/characters",
+  "method": "GET"
  },
  {
-  "method": "GET",
   "write": false,
   "role": "viewer",
-  "path": "/nukva/v1/catalog/items"
+  "path": "/nukva/v1/catalog/items",
+  "method": "GET"
  },
  {
-  "method": "GET",
   "write": false,
   "role": "viewer",
-  "path": "/nukva/v1/catalog/weapons"
+  "path": "/nukva/v1/catalog/weapons",
+  "method": "GET"
  },
  {
-  "method": "GET",
   "write": false,
   "role": "viewer",
-  "path": "/nukva/v1/artifacts/catalog"
+  "path": "/nukva/v1/artifacts/catalog",
+  "method": "GET"
  },
  {
-  "method": "GET",
   "write": false,
   "role": "viewer",
-  "path": "/nukva/v1/artifacts/pieces/{itemId}/options"
+  "path": "/nukva/v1/artifacts/pieces/{itemId}/options",
+  "method": "GET"
  },
  {
-  "method": "GET",
   "write": false,
   "role": "viewer",
-  "path": "/nukva/v1/players/{uid}/artifacts"
+  "path": "/nukva/v1/players/{uid}/artifacts",
+  "method": "GET"
  },
  {
-  "method": "GET",
   "write": false,
   "role": "viewer",
-  "path": "/nukva/v1/routes"
+  "path": "/nukva/v1/routes",
+  "method": "GET"
  },
  {
-  "method": "GET",
   "write": false,
   "role": "viewer",
-  "path": "/nukva/v1/audit"
+  "path": "/nukva/v1/audit",
+  "method": "GET"
  },
  {
   "path": "/nukva/v1/players/{uid}/avatars",

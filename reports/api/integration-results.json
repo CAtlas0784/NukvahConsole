@@ -1,0 +1,144 @@
+{
+ "bridge": "http://127.0.0.1:18088",
+ "uid": 10171,
+ "at": "2026-11-11T12:05:20.239Z",
+ "passed": 14,
+ "failed": 0,
+ "results": [
+  {
+   "name": "routes: live route table is captured for the contract check",
+   "ok": true,
+   "ms": 14,
+   "evidence": {
+    "routes": 31
+   }
+  },
+  {
+   "name": "typed catalog: characters / items / weapons / artifacts",
+   "ok": true,
+   "ms": 178,
+   "evidence": {
+    "characters": 121,
+    "weapons": 258,
+    "relicItems": 4292,
+    "sets": 64
+   }
+  },
+  {
+   "name": "artifact piece options come from the server and match its rules",
+   "ok": true,
+   "ms": 13,
+   "evidence": {
+    "mainStats": 15,
+    "substatTypes": 10,
+    "rollsAtMaxLevel": 9
+   }
+  },
+  {
+   "name": "authorized write + read-back: give mora, a material and a weapon",
+   "ok": true,
+   "ms": 5787,
+   "evidence": {
+    "moraDelta": 1234,
+    "oreDelta": 7,
+    "weaponGuid": "43684112367620"
+   }
+  },
+  {
+   "name": "permission denial: UID in targets.denyUids is refused before anything runs",
+   "ok": true,
+   "ms": 5,
+   "evidence": {
+    "message": "UID 77777 may not be modified through the bridge (targets in nukva.json).",
+    "realAccountProtected": "PERMISSION_DENIED"
+   }
+  },
+  {
+   "name": "invalid ids and unknown players",
+   "ok": true,
+   "ms": 2001,
+   "evidence": null
+  },
+  {
+   "name": "invalid artifact configuration is rejected with the exact rule",
+   "ok": true,
+   "ms": 1993,
+   "evidence": {
+    "details": [
+     "SUBSTAT_EQUALS_MAIN",
+     "INVALID_MAIN_STAT",
+     "TOO_MANY_SUBSTAT_TYPES"
+    ]
+   }
+  },
+  {
+   "name": "artifact: create with exact stats, read back, equip by guid, read back on the character",
+   "ok": true,
+   "ms": 8305,
+   "evidence": {
+    "guid": "43684112367621",
+    "rolls": 9,
+    "clientSync": true
+   }
+  },
+  {
+   "name": "duplicate execution: same Idempotency-Key applies once; replay is marked",
+   "ok": true,
+   "ms": 3696,
+   "evidence": {
+    "moraDelta": 500
+   }
+  },
+  {
+   "name": "concurrent requests: 10 distinct writes all apply; 10 copies of one key apply once",
+   "ok": true,
+   "ms": 4999,
+   "evidence": {
+    "statuses": {
+     "IN_PROGRESS": 9,
+     "ran": 1
+    }
+   }
+  },
+  {
+   "name": "network interruption: client aborts, retry with the same key does not apply twice",
+   "ok": true,
+   "ms": 3000,
+   "evidence": {
+    "firstAttempt": "AbortError",
+    "retryReplayed": true
+   }
+  },
+  {
+   "name": "inventory full: nothing is added when the batch does not fit",
+   "ok": true,
+   "ms": 3000,
+   "evidence": {
+    "weaponsBefore": 3,
+    "error": "Not enough space for 40 ITEM_WEAPON (free: 27 of 30)."
+   }
+  },
+  {
+   "name": "character + world writes read back; client is sent its sync packets",
+   "ok": true,
+   "ms": 6308,
+   "evidence": {
+    "level": 85,
+    "constellation": 1,
+    "fetter": 6,
+    "worldLevel": 2,
+    "syncPackets": [
+     "AvatarFetterDataNotify",
+     "PlayerEnterSceneNotify",
+     "AvatarUnlockTalentNotify"
+    ]
+   }
+  },
+  {
+   "name": "unequip and edit read back",
+   "ok": true,
+   "ms": 2693,
+   "evidence": null
+  }
+ ]
+}

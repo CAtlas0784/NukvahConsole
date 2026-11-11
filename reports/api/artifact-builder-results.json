@@ -1,0 +1,108 @@
+{
+ "bridge": "http://127.0.0.1:18088",
+ "uid": 10171,
+ "at": "2026-11-11T12:06:40.553Z",
+ "passed": 9,
+ "failed": 0,
+ "results": [
+  {
+   "name": "options: every slot offers exactly its legal main stats; ten substats with tiers",
+   "ok": true,
+   "ms": 18,
+   "evidence": {
+    "flower": 1,
+    "plume": 1,
+    "sands": 5,
+    "goblet": 12,
+    "circlet": 7
+   }
+  },
+  {
+   "name": "normal mode: all five slots, every allowed main stat, read back against the rules",
+   "ok": true,
+   "ms": 51978,
+   "evidence": {
+    "created": 26
+   }
+  },
+  {
+   "name": "normal mode: 3 starting substats and level boundaries (+0, +4, +20)",
+   "ok": true,
+   "ms": 4000,
+   "evidence": [
+    "3 rolls/3 types",
+    "4 rolls/4 types",
+    "8 rolls/4 types",
+    "4 rolls/4 types"
+   ]
+  },
+  {
+   "name": "custom mode: exact tiers and stacked upgrades are stored exactly",
+   "ok": true,
+   "ms": 1002,
+   "evidence": {
+    "guid": "43684112367654",
+    "critDmgTotal": 34.2
+   }
+  },
+  {
+   "name": "invalid configurations are rejected with the exact rule, nothing created",
+   "ok": true,
+   "ms": 1998,
+   "evidence": {
+    "rejected": [
+     "MAIN_STAT_NOT_ALLOWED_FOR_SLOT",
+     "INVALID_MAIN_STAT",
+     "INVALID_INITIAL_SUBSTATS",
+     "ROLLS_NOT_ALLOWED",
+     "MAIN_STAT_REQUIRED",
+     "ROLL_COUNT_MISMATCH",
+     "INVALID_ARTIFACT_CONFIG",
+     "UPGRADE_BEFORE_FOUR_TYPES",
+     "SUBSTAT_EQUALS_MAIN",
+     "OUT_OF_RANGE",
+     "OUT_OF_RANGE",
+     "INVALID_MODE"
+    ]
+   }
+  },
+  {
+   "name": "4★ piece: rules come from its rarity (2–3 start, +16 max)",
+   "ok": true,
+   "ms": 1009,
+   "evidence": {
+    "main": "FIGHT_PROP_HP_PERCENT",
+    "rolls": 6,
+    "types": 4
+   }
+  },
+  {
+   "name": "equip: never replaces silently; confirmed replacement returns the old piece to the bag; client is told",
+   "ok": true,
+   "ms": 8295,
+   "evidence": {
+    "replaced": "43684112367626",
+    "now": "43684112367627",
+    "clientSync": true
+   }
+  },
+  {
+   "name": "edit keeps the GUID and is checked like custom creation",
+   "ok": true,
+   "ms": 3699,
+   "evidence": {
+    "guid": "43684112367643",
+    "level": 5
+   }
+  },
+  {
+   "name": "delete: needs confirmation, refuses an equipped piece, removes and reads back",
+   "ok": true,
+   "ms": 6313,
+   "evidence": {
+    "deleted": "43684112367652",
+    "clientSync": true
+   }
+  }
+ ]
+}
