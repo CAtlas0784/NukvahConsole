@@ -1,0 +1,328 @@
+{
+  "generatedAt": "2026-11-10T10:00:33.888Z",
+  "reference": {
+    "dir": "C:\\Users\\PHITCH~1\\AppData\\Local\\Temp\\claude\\d619a0a72dce530f\\53756c67-afae-40b6-800f-4cdd8c07f727\\scratchpad\\refs\\AstaPS-Resource\\BinOutput\\Scene\\Point",
+    "note": "MeChen618/AstaPS-Resource 6cfecfb5 (MIT), deobfuscated scene point files"
+  },
+  "evidence": {
+    "matchedSceneFiles": 1410,
+    "matchedPoints": 4549,
+    "minSupport": 50,
+    "minPurity": 0.75
+  },
+  "container": {
+    "key": "NNGAFPEMOML",
+    "support": 3524,
+    "total": 4549,
+    "purity": 0.775,
+    "runnerUp": [
+      "HIECMDCPEAG",
+      884
+    ],
+    "accepted": true
+  },
+  "fields": {
+    "pos": {
+      "key": "CMGLCIKBLJJ",
+      "support": 2485,
+      "total": 2576,
+      "purity": 0.965,
+      "runnerUp": [
+        "pos",
+        87
+      ],
+      "accepted": true,
+      "seen": 4539
+    },
+    "tranPos": {
+      "key": "NPCCBOFKBCO",
+      "support": 1941,
+      "total": 2015,
+      "purity": 0.963,
+      "runnerUp": [
+        "tranPos",
+        74
+      ],
+      "accepted": true,
+      "seen": 3095
+    },
+    "rot": {
+      "key": "FFHABOBFAGN",
+      "support": 1590,
+      "total": 1622,
+      "purity": 0.98,
+      "runnerUp": [
+        "rot",
+        32
+      ],
+      "accepted": true,
+      "seen": 2564
+    },
+    "tranRot": {
+      "key": "EGALADGLFJM",
+      "support": 1217,
+      "total": 1261,
+      "purity": 0.965,
+      "runnerUp": [
+        "tranRot",
+        44
+      ],
+      "accepted": true,
+      "seen": 1984
+    },
+    "gadgetId": {
+      "key": "NNBHCICJLIF",
+      "support": 3593,
+      "total": 3729,
+      "purity": 0.964,
+      "runnerUp": [
+        "gadgetId",
+        136
+      ],
+      "accepted": true,
+      "seen": 4449
+    },
+    "areaId": {
+      "key": "ELEFFFOPKAH",
+      "support": 1704,
+      "total": 1704,
+      "purity": 1,
+      "runnerUp": null,
+      "accepted": true,
+      "seen": 1751
+    },
+    "titleTextID": {
+      "key": "HHKLHDILHPA",
+      "support": 600,
+      "total": 623,
+      "purity": 0.963,
+      "runnerUp": [
+        "titleTextID",
+        23
+      ],
+      "accepted": true,
+      "seen": 625
+    },
+    "dungeonIds": {
+      "key": "PMLKAGFDCEH",
+      "support": 363,
+      "total": 385,
+      "purity": 0.943,
+      "runnerUp": [
+        "dungeonIds",
+        22
+      ],
+      "accepted": true,
+      "seen": 389
+    },
+    "tranSceneId": {
+      "key": "KKGHDAAPPIF",
+      "support": 130,
+      "total": 131,
+      "purity": 0.992,
+      "runnerUp": [
+        "tranSceneId",
+        1
+      ],
+      "accepted": true,
+      "seen": 132
+    },
+    "size": {
+      "key": "MKHHFMFNPHG",
+      "support": 1509,
+      "total": 1531,
+      "purity": 0.986,
+      "runnerUp": [
+        "size",
+        22
+      ],
+      "accepted": true,
+      "seen": 2348
+    },
+    "groupIDs": {
+      "accepted": false,
+      "reason": "no evidence",
+      "seen": 0
+    },
+    "dungeonRandomList": {
+      "key": "FOCEDOLNOLG",
+      "support": 14,
+      "total": 14,
+      "purity": 1,
+      "runnerUp": null,
+      "accepted": false,
+      "seen": 14
+    }
+  },
+  "types": {
+    "SceneTransPoint": {
+      "keys": [
+        {
+          "key": "KDEHKECBDBO",
+          "support": 839,
+          "total": 839,
+          "purity": 1
+        }
+      ],
+      "accepted": true
+    },
+    "VirtualTransPoint": {
+      "keys": [
+        {
+          "key": "CAENMMKPMIJ",
+          "support": 58,
+          "total": 58,
+          "purity": 1
+        },
+        {
+          "key": "VirtualTransPoint",
+          "support": 86,
+          "total": 86,
+          "purity": 1
+        }
+      ],
+      "accepted": true
+    },
+    "DungeonEntry": {
+      "keys": [
+        {
+          "key": "BIDKGIAOIJE",
+          "support": 391,
+          "total": 391,
+          "purity": 1
+        },
+        {
+          "key": "DungeonEntry",
+          "support": 22,
+          "total": 22,
+          "purity": 1
+        }
+      ],
+      "accepted": true
+    },
+    "PersonalSceneJumpPoint": {
+      "keys": [
+        {
+          "key": "HGEKJIDOFJN",
+          "support": 131,
+          "total": 131,
+          "purity": 1
+        }
+      ],
+      "accepted": true
+    },
+    "SceneBuildingPoint": {
+      "keys": [
+        {
+          "key": "FGAMBGFNMEE",
+          "support": 287,
+          "total": 287,
+          "purity": 1
+        }
+      ],
+      "accepted": true
+    },
+    "DungeonExit": {
+      "keys": [
+        {
+          "key": "EJKBNAAJDEP",
+          "support": 339,
+          "total": 339,
+          "purity": 1
+        }
+      ],
+      "accepted": true
+    },
+    "SceneVehicleSummonPoint": {
+      "keys": [
+        {
+          "key": "DPBGLNINGKM",
+          "support": 74,
+          "total": 74,
+          "purity": 1
+        }
+      ],
+      "accepted": true
+    },
+    "DungeonWayPoint": {
+      "keys": [
+        {
+          "key": "LPLKNPCPGGA",
+          "support": 598,
+          "total": 598,
+          "purity": 1
+        }
+      ],
+      "accepted": true
+    },
+    "DungeonQuitPoint": {
+      "keys": [
+        {
+          "key": "CKEKLINJEII",
+          "support": 606,
+          "total": 606,
+          "purity": 1
+        }
+      ],
+      "accepted": true
+    }
+  },
+  "booleans": {
+    "unlocked": {
+      "key": "IHIOCMFBLDO",
+      "agree": 387,
+      "total": 391,
+      "refTrue": 1,
+      "bothTrue": 0,
+      "purity": 0.9898,
+      "runnerUp": {
+        "key": "NIGJGLDEKAD",
+        "purity": 0.9753
+      },
+      "accepted": false
+    },
+    "groupLimit": {
+      "key": "POGLHNAHJNK",
+      "agree": 4409,
+      "total": 4409,
+      "refTrue": 14,
+      "bothTrue": 14,
+      "purity": 1,
+      "runnerUp": {
+        "key": "BAEPMPKIIML",
+        "purity": 1
+      },
+      "accepted": false
+    },
+    "forbidSimpleUnlock": {
+      "key": "EMMOAAHLNGE",
+      "agree": 391,
+      "total": 391,
+      "refTrue": 275,
+      "bothTrue": 275,
+      "purity": 1,
+      "runnerUp": {
+        "key": "BAEPMPKIIML",
+        "purity": 1
+      },
+      "accepted": false
+    }
+  },
+  "plainAliases": {
+    "container": "points",
+    "fields": {
+      "pos": "pos",
+      "tranPos": "tranPos",
+      "rot": "rot",
+      "tranRot": "tranRot",
+      "gadgetId": "gadgetId",
+      "areaId": "areaId",
+      "titleTextID": "titleTextID",
+      "dungeonIds": "dungeonIds",
+      "tranSceneId": "tranSceneId",
+      "size": "size",
+      "groupIDs": "groupIDs",
+      "dungeonRandomList": "dungeonRandomList"
+    }
+  }
+}

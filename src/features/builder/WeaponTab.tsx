@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Replace, Wand2 } from 'lucide-react';
+import { Hammer, Replace, Wand2 } from 'lucide-react';
+import { Link } from 'react-router';
 import { useT } from '@/i18n';
 import { api, type ItemPatch } from '@/api/nukva';
 import { useCapability } from '@/stores/session';
@@ -8,6 +9,7 @@ import { Modal } from '@/components/ui/Overlay';
 import { OperationDialog, type OperationSpec } from '@/components/ui/OperationDialog';
 import { DenialNotice, EmptyState, RangeField, RarityStars, Segmented } from '@/components/ui/Primitives';
 import { ownerName, weaponName, type TabCtx } from './shared';
+import { fitAscension, levelLabel, levelMarks, maxLevelOf, validAscensions, WEAPON_CAPS_90 } from '@/lib/progression';
 
 export function WeaponTab({ ctx }: { ctx: TabCtx }) {
   const t = useT();
@@ -16,20 +18,25 @@ export function WeaponTab({ ctx }: { ctx: TabCtx }) {
   const info = current ? weapons.find((w) => w.id === current.itemId) : undefined;
   const editCap = useCapability('items.edit');
   const equipCap = useCapability('avatars.equip');
+  const caps = info?.ascensionCaps?.length ? info.ascensionCaps : WEAPON_CAPS_90;
+  const maxRef = info?.maxRefinement ?? 5;
   const [level, setLevel] = useState(current?.level ?? 1);
+  const [asc, setAsc] = useState(current?.promoteLevel ?? 0);
   const [refinement, setRefinement] = useState(current?.refinement ?? 1);
   const [picking, setPicking] = useState(false);
   const [spec, setSpec] = useState<OperationSpec<unknown> | null>(null);
 
   useEffect(() => {
     setLevel(current?.level ?? 1);
+    setAsc(current?.promoteLevel ?? 0);
     setRefinement(current?.refinement ?? 1);
-  }, [current?.guid, current?.level, current?.refinement, owned.avatarId]);
+  }, [current?.guid, current?.level, current?.promoteLevel, current?.refinement, owned.avatarId]);
 
   const patch: ItemPatch = {};
   if (current && level !== current.level) patch.level = level;
+  if (current && (asc !== current.promoteLevel || level !== current.level)) patch.promoteLevel = asc;
   if (current && refinement !== current.refinement) patch.refinement = refinement;
-  const dirty = Object.keys(patch).length > 0;
+  const dirty = !!current && (level !== current.level || asc !== current.promoteLevel || refinement !== current.refinement);
 
   const reviewPatch = () => {
     if (!current?.guid) return;
@@ -37,7 +44,9 @@ export function WeaponTab({ ctx }: { ctx: TabCtx }) {
     const name = weaponName(ctx, t, current.itemId);
     const lines = [
       { label: t('builder.currentWeapon'), value: name },
-      ...(patch.level ? [{ label: t('builder.weaponLevel'), value: `${current.level} → ${level}` }] : []),
+      ...(patch.level || asc !== current.promoteLevel
+        ? [{ label: t('builder.weaponLevel'), value: `${levelLabel(caps, current.level, current.promoteLevel)} → ${levelLabel(caps, level, asc)}` }]
+        : []),
       ...(patch.refinement ? [{ label: t('builder.refinement'), value: `R${current.refinement} → R${refinement}` }] : []),
     ];
     setSpec({
@@ -53,6 +62,7 @@ export function WeaponTab({ ctx }: { ctx: TabCtx }) {
 
   const reviewEquip = (guid: string, itemId: number) => {
     const name = weaponName(ctx, t, itemId);
+    const previous = current?.guid;
     setPicking(false);
     setSpec({
       title: t('builder.equipTitle', { name }),
@@ -61,11 +71,19 @@ export function WeaponTab({ ctx }: { ctx: TabCtx }) {
       summary: `${t.loc(character.name)} ← ${name}`,
       lines: [
         { label: t('builder.currentWeapon'), value: `${current ? weaponName(ctx, t, current.itemId) : t('builder.none')} → ${name}` },
+        ...(current ? [{ label: '', value: <span className="text-xs text-dim">{t('builder.weaponBackToBag')}</span> }] : []),
       ],
       request: { method: 'POST', path: `/players/{uid}/avatars/${owned.avatarId}/equip`, body: { guid } },
       run: (conn, uid) => api.equipItem(conn, uid, owned.avatarId, guid),
+      judge: () => {
+        if (previous) setUndoGuid(previous);
+        return { status: 'success' };
+      },
     });
   };
+
+  // One-step undo of a weapon swap: equip the previous weapon again (it is still in the bag).
+  const [undoGuid, setUndoGuid] = useState<string | null>(null);
 
   const choices = inventory
     .filter((i) => i.type === 'ITEM_WEAPON' && weapons.find((w) => w.id === i.itemId)?.type === character.weapon)
@@ -92,10 +110,29 @@ export function WeaponTab({ ctx }: { ctx: TabCtx }) {
 
         {current && (
           <>
-            <RangeField label={t('builder.weaponLevel')} value={level} onChange={setLevel} min={1} max={90} marks={[1, 20, 40, 50, 60, 70, 80, 90]} />
+            <RangeField
+              label={t('builder.weaponLevel')}
+              value={level}
+              onChange={(v) => {
+                setLevel(v);
+                setAsc((a) => fitAscension(caps, v, a));
+              }}
+              min={1}
+              max={maxLevelOf(caps)}
+              marks={levelMarks(caps)}
+            />
+            {validAscensions(caps, level).length > 1 ? (
+              <Segmented label={t('builder.ascensionLabel')} value={asc} onChange={setAsc} options={validAscensions(caps, level).map((p) => ({ value: p, label: levelLabel(caps, level, p) }))} />
+            ) : (
+              <span className="inline-block rounded-md border border-line px-2 py-1 font-mono text-xs text-mist">{levelLabel(caps, level, asc)}</span>
+            )}
             <div>
               <div className="label">{t('builder.refinement')}</div>
-              <Segmented label={t('builder.refinement')} value={refinement} onChange={setRefinement} options={[1, 2, 3, 4, 5].map((n) => ({ value: n, label: `R${n}` }))} />
+              {maxRef > 1 ? (
+                <Segmented label={t('builder.refinement')} value={refinement} onChange={setRefinement} options={[1, 2, 3, 4, 5].map((n) => ({ value: n, label: `R${n}` }))} />
+              ) : (
+                <p className="text-xs text-dim">{t('armory.noRefinement')}</p>
+              )}
             </div>
             {!editCap.allowed && editCap.reason !== 'preview' && <DenialNotice reason={editCap.reason} role={editCap.role} compact />}
             <button className="btn btn-primary w-full" disabled={!dirty || !current.guid} onClick={reviewPatch}>
@@ -106,6 +143,22 @@ export function WeaponTab({ ctx }: { ctx: TabCtx }) {
         <button className="btn btn-ghost w-full" onClick={() => setPicking(true)}>
           <Replace size={15} /> {t('builder.change')}
         </button>
+        <Link className="btn btn-quiet w-full" to={`/armory?type=${character.weapon}&equip=${owned.avatarId}`}>
+          <Hammer size={15} /> {t('builder.forgeForCharacter')}
+        </Link>
+        {undoGuid && undoGuid !== current?.guid && (
+          <button
+            className="btn btn-quiet w-full"
+            onClick={() => {
+              const guid = undoGuid;
+              setUndoGuid(null);
+              const item = inventory.find((i) => i.guid === guid);
+              reviewEquip(guid, item?.itemId ?? 0);
+            }}
+          >
+            {t('builder.undoWeapon')}
+          </button>
+        )}
         <p className="text-xs text-dim">{t('builder.weaponKeep')}</p>
       </section>
 

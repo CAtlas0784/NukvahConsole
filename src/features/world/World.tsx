@@ -5,14 +5,16 @@ import { Bookmark, Crosshair, Globe2, MapPin, Orbit, Search, Skull, Trash2, Wand
 import { useT } from '@/i18n';
 import { byId, useCatalog } from '@/data/catalog';
 import { api } from '@/api/nukva';
-import { usePlayer } from '@/api/hooks';
+import { usePlayer, useServerScenePoints } from '@/api/hooks';
 import { useSession } from '@/stores/session';
 import { usePresets } from '@/stores/presets';
 import { Orrery } from '@/components/fx/Orrery';
 import { Artwork } from '@/components/fx/Artwork';
 import { OperationDialog, type OperationSpec } from '@/components/ui/OperationDialog';
 import { IdTag, Panel, RangeField, SkeletonGrid, Stepper } from '@/components/ui/Primitives';
-import type { Scene } from '@/data/types';
+import type { Scene, TeleportPoint } from '@/data/types';
+import { WorldMap, landingOf, pointKey, pointTitle, CHECK_COLOR } from './WorldMap';
+import { checkPoint, coordProblem } from '@/lib/worldMap';
 import { normalize } from '@/lib/search';
 import { ease } from '@/lib/motion';
 
@@ -50,6 +52,14 @@ export default function World() {
   const [sceneId, setSceneId] = useState<number | null>(Number(params.get('scene')) || 3);
   const [coords, setCoords] = useState({ x: '', y: '', z: '' });
   const [bookmarkName, setBookmarkName] = useState('');
+  const [pickedPoint, setPickedPoint] = useState<TeleportPoint | null>(null);
+  const pickPoint = (p: TeleportPoint) => {
+    const at = landingOf(p);
+    setPickedPoint(p);
+    setSceneId(p.sceneId);
+    setCoords({ x: String(at.x), y: String(at.y), z: String(at.z) });
+    document.getElementById('teleport-form')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  };
 
   // Spawn
   const [monsterQuery, setMonsterQuery] = useState('');
@@ -86,7 +96,14 @@ export default function World() {
   const monster = monsterId ? byId(monsters.data).get(monsterId) : undefined;
   const parsed = ['x', 'y', 'z'].map((k) => coords[k as 'x'].trim());
   const hasCoords = parsed.every((v) => v !== '' && Number.isFinite(Number(v)));
-  const partialCoords = !hasCoords && parsed.some((v) => v !== '');
+  const coordIssue = coordProblem(coords);
+  const partialCoords = coordIssue !== null;
+  const serverPoints = useServerScenePoints(sceneId);
+  // A picked point is sent by id only when the server confirms it and the fields still hold its landing spot.
+  const pickedLanding = pickedPoint ? landingOf(pickedPoint) : null;
+  const pointCheck = pickedPoint && pickedPoint.sceneId === sceneId ? checkPoint(pickedPoint, serverPoints.data) : null;
+  const byPoint =
+    pointCheck === 'verified' && pickedLanding && coords.x === String(pickedLanding.x) && coords.y === String(pickedLanding.y) && coords.z === String(pickedLanding.z);
   const maxEntities = status?.limits.maxEntities ?? 20;
 
   return (
@@ -192,7 +209,16 @@ export default function World() {
                 </ul>
               )}
             </div>
-            <div className="space-y-4">
+            <div id="teleport-form" className="space-y-4">
+              {pickedPoint && pickedPoint.sceneId === sceneId && (
+                <div className="rounded-xl border border-cyan/25 bg-cyan/[0.05] px-3 py-2 text-xs text-pale">
+                  <div>{t('world.mapPicked', { name: pointTitle(pickedPoint, t.loc) })}</div>
+                  {pointCheck && <div className={`mt-1 ${CHECK_COLOR[pointCheck]}`}>{t.dyn(`world.checkLong.${pointCheck}`)}</div>}
+                </div>
+              )}
+              {player.data && typeof player.data.unlockedPoints === 'number' && (
+                <p className="text-[11px] text-dim">{t('world.unlockedInfo', { scene: player.data.sceneId, unlocked: player.data.unlockedPoints, total: player.data.scenePoints ?? 0 })}</p>
+              )}
               <div className="rounded-2xl border border-cyan/20 bg-cyan/[0.03] p-4">
                 <div className="text-[11px] tracking-[0.16em] text-dim uppercase">{t('world.scene')}</div>
                 <div className="mt-1 font-display text-lg text-ivory">{scene ? sceneTitle(scene, t) : '—'}</div>
@@ -206,6 +232,7 @@ export default function World() {
                   ))}
                 </div>
                 <p className="mt-1.5 text-xs text-dim">{t('world.coordinatesHint')}</p>
+                {coordIssue && <p className="mt-1 text-xs text-warn">{t.dyn(`world.coordProblem.${coordIssue}`)}</p>}
                 {player.data?.position && (
                   <button className="btn btn-quiet btn-sm mt-1 -ml-2" onClick={() => { const p = player.data!.position!; setCoords({ x: p.x.toFixed(2), y: p.y.toFixed(2), z: p.z.toFixed(2) }); setSceneId(player.data!.sceneId); }}>
                     <Crosshair size={13} /> {t('world.useCurrent')}
@@ -217,7 +244,11 @@ export default function World() {
                 disabled={!scene || partialCoords}
                 onClick={() => {
                   if (!scene) return;
-                  const body = hasCoords ? { sceneId: scene.id, x: Number(coords.x), y: Number(coords.y), z: Number(coords.z) } : { sceneId: scene.id };
+                  const body = byPoint && pickedPoint
+                    ? { sceneId: scene.id, pointId: pickedPoint.pointId }
+                    : hasCoords
+                      ? { sceneId: scene.id, x: Number(coords.x), y: Number(coords.y), z: Number(coords.z) }
+                      : { sceneId: scene.id };
                   setSpec({
                     title: t('world.teleportNow'),
                     capability: 'world.teleport',
@@ -225,10 +256,16 @@ export default function World() {
                     summary: `→ ${sceneTitle(scene, t)}${hasCoords ? ` (${coords.x}, ${coords.y}, ${coords.z})` : ''}`,
                     lines: [
                       { label: t('world.scene'), value: `${sceneTitle(scene, t)} (#${scene.id})` },
-                      { label: t('world.coordinates'), value: hasCoords ? `${coords.x}, ${coords.y}, ${coords.z}` : '—' },
+                      byPoint && pickedPoint
+                        ? { label: t('world.destination'), value: t('world.destinationPoint', { id: pickedPoint.pointId }) }
+                        : { label: t('world.coordinates'), value: hasCoords ? `${coords.x}, ${coords.y}, ${coords.z}` : t('world.defaultSpawn') },
                     ],
                     request: { method: 'POST', path: '/players/{uid}/teleport', body },
                     run: (conn, target) => api.teleport(conn, target, body),
+                    judge: (r) => ({
+                      status: 'success',
+                      detail: r.position ? `scene ${r.sceneId} @ ${r.position.x.toFixed(1)}, ${r.position.y.toFixed(1)}, ${r.position.z.toFixed(1)}` : `scene ${r.sceneId}`,
+                    }),
                   });
                 }}
               >
@@ -272,6 +309,13 @@ export default function World() {
               </div>
             </div>
           </div>
+        </Panel>
+
+        {/* Teleport map */}
+        <Panel className="p-6 xl:col-span-2" eyebrow={<span className="text-cyan">{t('world.map')}</span>}>
+          <p className="-mt-1 mb-4 text-sm text-mist">{t('world.mapLead')}</p>
+          {serverPoints.error ? <p className="mb-3 text-xs text-warn">{t('world.serverPointsFailed')}</p> : null}
+          <WorldMap sceneId={sceneId} selected={pickedPoint ? pointKey(pickedPoint) : null} onPick={pickPoint} server={serverPoints.data} />
         </Panel>
 
         {/* Spawn */}

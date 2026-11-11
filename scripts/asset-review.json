@@ -1,0 +1,62 @@
+{
+  "reviewedAt": "2026-11-10",
+  "note": "Byte-identical images under different keys, reviewed one by one. Each key is the icon field of its own item row; the game itself shows the same art for these items. A group is accepted only while its keys and SHA-256 match exactly.",
+  "sharedContent": [
+    {
+      "sha256": "61d34f152f0d2e50eee82b1c84b81f1a3180e9ddc14b0b5192bc3146a36be28c",
+      "keys": [
+        "UI_ItemIcon_101513",
+        "UI_ItemIcon_101543"
+      ],
+      "decision": "accept",
+      "reason": "Generic travel-document art the game assigns to two different quest documents (each row names its own key)."
+    },
+    {
+      "sha256": "04170a85166c73678f804b9be87bbb027a422ddb5185e95a7c151079bd135909",
+      "keys": [
+        "UI_ItemIcon_101804",
+        "UI_ItemIcon_101807"
+      ],
+      "decision": "accept",
+      "reason": "Two Asterism Shard quest rows (same object)."
+    },
+    {
+      "sha256": "9e09779dc434c6115e73b148fbb5685a0202260bf9324778d0528ac5b76cce92",
+      "keys": [
+        "UI_ItemIcon_101896",
+        "UI_ItemIcon_101897",
+        "UI_ItemIcon_101898"
+      ],
+      "decision": "accept",
+      "reason": "Three Crystalline Core quest rows (same object)."
+    },
+    {
+      "sha256": "abbe7810c135590144123bb6c71d2dd5ee698e36c6fea2a1c9edb9804b8df5d8",
+      "keys": [
+        "UI_ItemIcon_101991",
+        "UI_ItemIcon_120275"
+      ],
+      "decision": "accept",
+      "reason": "Generic notebook art the game assigns to several quest notes (each row names its own key)."
+    },
+    {
+      "sha256": "1debccc83d02dfa621e261805c429884e065bbafec20c27a400eaff808ac15b1",
+      "keys": [
+        "UI_ItemIcon_120108",
+        "UI_ItemIcon_120111"
+      ],
+      "decision": "accept",
+      "reason": "Pages of the same Mysterious Stone Slate quest item."
+    },
+    {
+      "sha256": "07adad3f4fbc090cc052cd3150b3eb2a2aae9df8605458f034e520164ed812c5",
+      "keys": [
+        "UI_ItemIcon_120884",
+        "UI_ItemIcon_120885",
+        "UI_ItemIcon_120886"
+      ],
+      "decision": "accept",
+      "reason": "Generic key art the game assigns to three different quest keys (121123-121125; each row names its own key). Source: Ambr fallback."
+    }
+  ]
+}

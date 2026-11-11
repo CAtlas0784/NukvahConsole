@@ -11,7 +11,12 @@
     "preview": "vite preview",
     "typecheck": "tsc -b --pretty",
     "test": "vitest run",
-    "catalog": "node scripts/build-catalog.mjs"
+    "catalog": "node scripts/build-catalog.mjs",
+    "assets": "node scripts/sync-assets.mjs",
+    "assets:verify": "node scripts/verify-assets.mjs",
+    "catalog:validate": "node scripts/validate-catalog.mjs",
+    "catalog:points": "node scripts/derive-point-keys.mjs",
+    "api:types": "node scripts/gen-api-types.mjs"
   },
   "dependencies": {
     "@fontsource-variable/cinzel": "^5.3.0",

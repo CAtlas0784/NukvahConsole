@@ -1,17 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
-import { Gem, Loader2, Search, Sparkles, Wand2 } from 'lucide-react';
+import { BookmarkPlus, FolderOpen, Gem, Loader2, Search, Sparkles, Undo2, Wand2 } from 'lucide-react';
 import { useT } from '@/i18n';
 import { byId, useCatalog } from '@/data/catalog';
 import { useAvatars, useBuilderInventory } from '@/api/hooks';
 import { api, type MaxResult, type OwnedAvatar } from '@/api/nukva';
 import { useCapability, useConnection, useSession } from '@/stores/session';
+import { usePresets } from '@/stores/presets';
+import { Modal } from '@/components/ui/Overlay';
 import { describeError, useToasts } from '@/stores/ops';
 import { Artwork, elementColor } from '@/components/fx/Artwork';
 import { OperationDialog, type OperationSpec } from '@/components/ui/OperationDialog';
 import { DenialNotice, EmptyState, ErrorState, IdTag, PageHeader, RangeField, RarityStars, Segmented, SkeletonGrid, Stepper } from '@/components/ui/Primitives';
-import type { Character, Element } from '@/data/types';
-import { indexPieces, isMaxed, MAX_ASCENSION, minPromote, planMax } from '@/lib/builder';
+import type { Character, Element, WeaponType } from '@/data/types';
+import { indexPieces, isMaxed, planMax } from '@/lib/builder';
+import { AVATAR_CAPS, fitAscension, levelLabel, levelMarks, validAscensions } from '@/lib/progression';
+import { UnlockPanel } from './UnlockPanel';
 import { normalize } from '@/lib/search';
 import { ArtifactsTab } from './ArtifactsTab';
 import { SummaryTab } from './SummaryTab';
@@ -19,6 +23,7 @@ import { WeaponTab } from './WeaponTab';
 import { describeChange, type TabCtx } from './shared';
 
 const ELEMENTS: Element[] = ['pyro', 'hydro', 'anemo', 'electro', 'dendro', 'cryo', 'geo'];
+const WEAPON_TYPES: WeaponType[] = ['sword', 'claymore', 'polearm', 'catalyst', 'bow'];
 const TABS = ['character', 'weapon', 'artifacts', 'constellation', 'talents', 'summary'] as const;
 type Tab = (typeof TABS)[number];
 
@@ -32,6 +37,8 @@ export default function Builder() {
   const [element, setElement] = useState<Element | null>(null);
   const [rarity, setRarity] = useState<number | null>(null);
   const [ownedOnly, setOwnedOnly] = useState(true);
+  const [weapon, setWeapon] = useState<WeaponType | null>(null);
+  const [showUnreleased, setShowUnreleased] = useState(false);
 
   const owned = useMemo(() => new Map((avatars.data ?? []).map((a) => [a.avatarId, a])), [avatars.data]);
   const selectedId = Number(params.get('id')) || null;
@@ -42,11 +49,14 @@ export default function Builder() {
     return (characters.data ?? []).filter((c) => {
       if (ownedOnly && !owned.has(c.id)) return false;
       if (element && c.element !== element) return false;
+      if (weapon && c.weapon !== weapon) return false;
       if (rarity && c.rarity !== rarity) return false;
+      // Unreleased rows (not in the game's codex) stay hidden unless asked for; owned ones always show.
+      if (!showUnreleased && c.release === 'not-in-codex' && !owned.has(c.id)) return false;
       if (q && !normalize(`${c.name.en} ${c.name.th ?? ''} ${c.key} ${c.id}`).includes(q)) return false;
       return true;
     });
-  }, [characters.data, query, element, rarity, ownedOnly, owned]);
+  }, [characters.data, query, element, weapon, rarity, ownedOnly, showUnreleased, owned]);
 
   return (
     <>
@@ -71,6 +81,13 @@ export default function Builder() {
             ))}
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
+            {WEAPON_TYPES.map((w) => (
+              <button key={w} className="chip" aria-pressed={weapon === w} onClick={() => setWeapon(weapon === w ? null : w)}>
+                {t.dyn(`weapons.${w}`)}
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5">
             {[5, 4].map((r) => (
               <button key={r} className="chip" aria-pressed={rarity === r} onClick={() => setRarity(rarity === r ? null : r)}>
                 {t('common.stars', { n: r })}
@@ -81,6 +98,10 @@ export default function Builder() {
               {t('builder.ownedOnly')}
             </label>
           </div>
+          <label className="flex cursor-pointer items-center gap-2 text-xs text-mist">
+            <input type="checkbox" checked={showUnreleased} onChange={(e) => setShowUnreleased(e.target.checked)} />
+            {t('builder.showUnreleased')}
+          </label>
           <div className="text-[11px] text-dim">{t('builder.count', { n: list.length })}</div>
           <div className="min-h-0 flex-1 overflow-y-auto pr-1">
             {characters.error ? (
@@ -123,6 +144,8 @@ function RosterCard({ character: c, owned, active, onOpen }: { character: Charac
     >
       <Artwork icon={c.icon} name={c.name.en} element={c.element} rarity={c.rarity} size={56} rounded="rounded-full" />
       <span className="w-full truncate text-[11px] font-semibold text-ivory">{t.loc(c.name)}</span>
+      {c.release === 'traveler' && <span className="rounded border border-cyan/40 px-1 text-[9px] text-cyan">{t('builder.traveler')}</span>}
+      {c.release === 'not-in-codex' && <span className="rounded border border-warn/40 px-1 text-[9px] text-warn">{t('builder.unreleased')}</span>}
       {owned && (
         <span className={`rounded-md border px-1 font-mono text-[10px] ${isMaxed(owned) ? 'border-gold/50 text-gold' : 'border-ok/30 text-ok'}`}>
           {owned.level} · C{owned.constellation}
@@ -148,6 +171,11 @@ function Workbench({ character, owned, characters, onRosterChanged }: { characte
   const [planning, setPlanning] = useState(false);
 
   const [level, setLevel] = useState(owned?.level ?? 90);
+  const [asc, setAsc] = useState(owned?.promoteLevel ?? 6);
+  const [presetsOpen, setPresetsOpen] = useState(false);
+  const [undo, setUndo] = useState<{ body: Record<string, number>; lines: { label: string; value: string }[] } | null>(null);
+  const presets = usePresets((s) => s.presets);
+  const addPreset = usePresets((s) => s.add);
   const [cons, setCons] = useState(owned?.constellation ?? 0);
   const [normal, setNormal] = useState(owned?.talents?.normal.level ?? 10);
   const [skill, setSkill] = useState(owned?.talents?.skill.level ?? 10);
@@ -156,6 +184,7 @@ function Workbench({ character, owned, characters, onRosterChanged }: { characte
   useEffect(() => {
     if (!owned) return;
     setLevel(owned.level);
+    setAsc(owned.promoteLevel);
     setCons(owned.constellation);
     setNormal(owned.talents?.normal.level ?? 10);
     setSkill(owned.talents?.skill.level ?? 10);
@@ -169,13 +198,7 @@ function Workbench({ character, owned, characters, onRosterChanged }: { characte
     inventory.refresh();
   };
 
-  if (!owned) {
-    return (
-      <div className="panel flex items-center gap-3 border-gold/20 bg-gold/[0.04] p-5 text-sm text-gold">
-        <Sparkles size={16} /> {t('builder.notOwned')}
-      </div>
-    );
-  }
+  if (!owned) return <UnlockPanel character={character} onUnlocked={refresh} />;
 
   const ctx: TabCtx = {
     character,
@@ -195,6 +218,12 @@ function Workbench({ character, owned, characters, onRosterChanged }: { characte
     body.level = level;
     pending.push({ label: t('common.level'), value: `${owned.level} → ${level}` });
   }
+  if (asc !== owned.promoteLevel || level !== owned.level) {
+    // Always send the ascension with a level change: 80/80 and 80/90 are both level 80.
+    body.promoteLevel = asc;
+    if (asc !== owned.promoteLevel)
+      pending.push({ label: t('builder.ascensionLabel'), value: `${levelLabel(AVATAR_CAPS, owned.level, owned.promoteLevel)} → ${levelLabel(AVATAR_CAPS, level, asc)}` });
+  }
   if (cons !== owned.constellation) {
     body.constellation = cons;
     pending.push({ label: t('characters.constellation'), value: `C${owned.constellation} → C${cons}` });
@@ -208,7 +237,30 @@ function Workbench({ character, owned, characters, onRosterChanged }: { characte
     }
   }
 
-  const reviewUpdate = () =>
+  // The values before this change, for a one-step undo (a normal update with the old values).
+  const snapshot = () => {
+    const back: Record<string, number> = {};
+    const lines: { label: string; value: string }[] = [];
+    if ('level' in body || 'promoteLevel' in body) {
+      back.level = owned.level;
+      back.promoteLevel = owned.promoteLevel;
+      lines.push({ label: t('common.level'), value: `${levelLabel(AVATAR_CAPS, level, asc)} → ${levelLabel(AVATAR_CAPS, owned.level, owned.promoteLevel)}` });
+    }
+    if ('constellation' in body) {
+      back.constellation = owned.constellation;
+      lines.push({ label: t('characters.constellation'), value: `C${cons} → C${owned.constellation}` });
+    }
+    for (const key of ['normal', 'skill', 'burst'] as const) {
+      if (key in body && owned.talents) {
+        back[key] = owned.talents[key].level;
+        lines.push({ label: t.dyn(`characters.${key}`), value: `${body[key]} → ${owned.talents[key].level}` });
+      }
+    }
+    return { body: back, lines };
+  };
+
+  const reviewUpdate = () => {
+    const before = snapshot();
     setSpec({
       title: t('builder.updateTitle', { name }),
       capability: 'avatars.level',
@@ -219,12 +271,54 @@ function Workbench({ character, owned, characters, onRosterChanged }: { characte
       run: (c, target) => api.updateAvatar(c, target, owned.avatarId, body),
       judge: (result) => {
         const r = result as OwnedAvatar;
-        return r.rejected && r.rejected.length ? { status: 'partial', detail: `rejected: ${r.rejected.join(', ')}` } : { status: 'success', detail: `Lv${r.level} C${r.constellation}` };
+        setUndo(before);
+        return r.rejected && r.rejected.length ? { status: 'partial', detail: `rejected: ${r.rejected.join(', ')}` } : { status: 'success', detail: `Lv${r.level}/${AVATAR_CAPS[r.promoteLevel] ?? '?'} C${r.constellation}` };
       },
     });
+  };
+
+  const reviewUndo = () => {
+    if (!undo) return;
+    const back = undo.body;
+    setSpec({
+      title: t('builder.undoTitle', { name }),
+      capability: 'avatars.level',
+      action: 'avatar.update',
+      summary: `${name}: ${t('builder.undo')}`,
+      lines: undo.lines,
+      request: { method: 'PATCH', path: `/players/{uid}/avatars/${owned.avatarId}`, body: back },
+      run: (c, target) => api.updateAvatar(c, target, owned.avatarId, back),
+      judge: (result) => {
+        setUndo(null);
+        const r = result as OwnedAvatar;
+        return { status: 'success', detail: `Lv${r.level} C${r.constellation}` };
+      },
+    });
+  };
+
+  const savePreset = () => {
+    addPreset({
+      kind: 'character',
+      name: `${name} · Lv${level} C${cons}`,
+      payload: { avatarId: character.id, level, promoteLevel: asc, constellation: cons, talents: { normal, skill, burst } },
+    });
+    if (owned.weapon || owned.artifacts.length) {
+      addPreset({
+        kind: 'equipment',
+        name: `${name} · ${t('builder.gear')}`,
+        payload: {
+          weapon: owned.weapon ? { itemId: owned.weapon.itemId, level: owned.weapon.level, promoteLevel: owned.weapon.promoteLevel, refinement: owned.weapon.refinement } : null,
+          artifacts: owned.artifacts.map((a) => ({ itemId: a.itemId, level: a.level, mainPropId: a.mainPropId, appendPropIds: a.appendPropIds })),
+        },
+      });
+    }
+    toast({ tone: 'info', title: t('builder.presetSaved'), body: name });
+  };
+  const characterPresets = presets.filter((p) => p.kind === 'character' && p.payload.avatarId === character.id);
 
   const discard = () => {
     setLevel(owned.level);
+    setAsc(owned.promoteLevel);
     setCons(owned.constellation);
     setNormal(owned.talents?.normal.level ?? 10);
     setSkill(owned.talents?.skill.level ?? 10);
@@ -303,12 +397,29 @@ function Workbench({ character, owned, characters, onRosterChanged }: { characte
             </span>
           </div>
         </div>
+        <button className="btn btn-ghost btn-icon" onClick={savePreset} title={t('builder.savePreset')} aria-label={t('builder.savePreset')}>
+          <BookmarkPlus size={15} />
+        </button>
+        <button className="btn btn-ghost btn-icon" onClick={() => setPresetsOpen(true)} title={t('builder.loadPreset')} aria-label={t('builder.loadPreset')}>
+          <FolderOpen size={15} />
+        </button>
         <button className="btn btn-primary" onClick={oneClickMax} disabled={planning || maxBlocked} title={maxBlocked ? t('states.permissionText', { role: maxCap.role ?? '' }) : undefined}>
           {planning ? <Loader2 size={15} className="animate-spin" /> : <Gem size={15} />} {planning ? t('builder.maxPlanning') : t('builder.oneClickMax')}
         </button>
       </div>
       {mode === 'preview' && <p className="text-xs text-dim">{t('builder.previewNote')}</p>}
       {maxBlocked && <DenialNotice reason={maxCap.reason} role={maxCap.role} compact />}
+      {undo && (
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-line bg-abyss/40 px-4 py-2.5 text-xs text-mist">
+          <span className="min-w-0 flex-1">{t('builder.undoHint', { what: undo.lines.map((l) => l.label).join(', ') })}</span>
+          <button className="btn btn-ghost btn-sm" onClick={reviewUndo}>
+            <Undo2 size={13} /> {t('builder.undo')}
+          </button>
+          <button className="btn btn-quiet btn-sm" onClick={() => setUndo(null)}>
+            {t('common.close')}
+          </button>
+        </div>
+      )}
 
       <div role="tablist" aria-label={t('builder.title')} className="flex gap-1 overflow-x-auto rounded-xl border border-line bg-abyss/50 p-1">
         {TABS.map((id) => (
@@ -326,12 +437,39 @@ function Workbench({ character, owned, characters, onRosterChanged }: { characte
 
       {tab === 'character' && (
         <section className="panel space-y-6 p-5">
-          <RangeField label={t('common.level')} value={level} onChange={setLevel} min={1} max={90} marks={[1, 20, 40, 50, 60, 70, 80, 90]} />
+          <RangeField
+            label={t('common.level')}
+            value={level}
+            onChange={(v) => {
+              setLevel(v);
+              setAsc((a) => fitAscension(AVATAR_CAPS, v, a));
+            }}
+            min={1}
+            max={90}
+            marks={levelMarks(AVATAR_CAPS)}
+          />
           <div className="flex flex-wrap items-center gap-3">
-            <button className="btn btn-ghost" onClick={() => setLevel(90)} disabled={level === 90}>
+            <button
+              className="btn btn-ghost"
+              onClick={() => {
+                setLevel(90);
+                setAsc(6);
+              }}
+              disabled={level === 90}
+            >
               {t('builder.max')}
             </button>
-            <span className="rounded-md border border-line px-2 py-1 font-mono text-xs text-mist">{t('builder.ascension', { n: minPromote(level), max: MAX_ASCENSION })}</span>
+            {validAscensions(AVATAR_CAPS, level).length > 1 ? (
+              <Segmented
+                label={t('builder.ascensionLabel')}
+                value={asc}
+                onChange={setAsc}
+                options={validAscensions(AVATAR_CAPS, level).map((p) => ({ value: p, label: levelLabel(AVATAR_CAPS, level, p) }))}
+              />
+            ) : (
+              <span className="rounded-md border border-line px-2 py-1 font-mono text-xs text-mist">{levelLabel(AVATAR_CAPS, level, asc)}</span>
+            )}
+            <span className="font-mono text-xs text-dim">{t('builder.ascension', { n: asc, max: 6 })}</span>
             <span className="text-xs text-dim">
               {t('characters.friendship')}: {owned.fetterLevel}
             </span>
@@ -423,6 +561,44 @@ function Workbench({ character, owned, characters, onRosterChanged }: { characte
       )}
 
       {tab === 'summary' && <SummaryTab ctx={ctx} />}
+
+      <Modal open={presetsOpen} onClose={() => setPresetsOpen(false)} title={t('builder.loadPreset')} eyebrow={name}>
+        {characterPresets.length === 0 ? (
+          <EmptyState title={t('builder.noPresets')} />
+        ) : (
+          <ul className="space-y-2">
+            {characterPresets.map((p) =>
+              p.kind !== 'character' ? null : (
+                <li key={p.id} className="flex items-center gap-3 rounded-xl border border-line bg-abyss/40 p-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm text-ivory">{p.name}</div>
+                    <div className="font-mono text-[11px] text-dim">
+                      Lv{p.payload.level} C{p.payload.constellation} · {p.payload.talents.normal}/{p.payload.talents.skill}/{p.payload.talents.burst}
+                    </div>
+                  </div>
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => {
+                      setLevel(p.payload.level);
+                      setAsc(p.payload.promoteLevel ?? fitAscension(AVATAR_CAPS, p.payload.level, 6));
+                      setCons(p.payload.constellation);
+                      if (owned.talents) {
+                        setNormal(Math.min(10, p.payload.talents.normal));
+                        setSkill(Math.min(10, p.payload.talents.skill));
+                        setBurst(Math.min(10, p.payload.talents.burst));
+                      }
+                      setPresetsOpen(false);
+                      toast({ tone: 'info', title: t('builder.presetLoaded'), body: t('builder.presetLoadedHint') });
+                    }}
+                  >
+                    {t('builder.loadIntoEditor')}
+                  </button>
+                </li>
+              ),
+            )}
+          </ul>
+        )}
+      </Modal>
 
       <OperationDialog spec={spec} onClose={() => setSpec(null)} onDone={() => refresh()} />
     </div>

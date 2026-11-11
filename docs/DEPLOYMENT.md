@@ -6,7 +6,7 @@ The console is a static site. Both targets build the same code; only the base pa
 |---|---|---|
 | `VITE_BASE_PATH` | `/` | `/` for Vercel; `/<repository>/` for a GitHub Pages project site (the workflow sets it) |
 | `VITE_DEFAULT_API_URL` | empty | Pre-fills the server URL on the connect screen |
-| `VITE_ASSET_BASE_URL` | empty | Artwork you host and may use (`<base>/<IconName>.png`) |
+| `VITE_ASSET_BASE_URL` | empty | Artwork you host and may use (`<base>/index.json` and `<base>/<IconName>.png`) |
 
 These end up in public JavaScript. **Never** put tokens or passwords in them.
 
@@ -59,17 +59,28 @@ Restart the server after changing it; the log shows `[Nukva] API bridge enabled 
 ### 2. Run the console
 
 `npm run dev` serves `http://localhost:5173` (`npm run preview` → `http://localhost:4173`); both
-origins are allowed by default. A hosted copy (Vercel/GitHub Pages) also works from this machine
-if you add its origin to `allowedOrigins`, since browsers let any page call loopback.
+origins are allowed by default. For a hosted HTTPS copy, add its exact origin to `allowedOrigins`.
+In Chromium, allow loopback network access for that origin when prompted. A denied browser
+permission can prevent the request from reaching the bridge even with the correct CORS allowlist.
+
+The local game-art cache is served by Vite dev and preview. Static builds use placeholders unless
+an artwork host serves the verified `index.json` and matching PNGs over HTTPS. Configure CORS for
+the console origin on that host.
 
 Tailscale Serve, Cloudflare Tunnel and reverse proxies are **not** supported: requests that carry
 forwarding headers are refused with `LOCAL_ONLY`.
 
 ### Troubleshooting
 
+If the bridge returns HTTP 500 only for requests carrying an Origin header, check the server-wide
+HTTP CORS policy. Phase 7 reproduced this with that policy enabled. With it disabled on the
+test instance, the bridge handled its own CORS preflight and rejected unlisted origins.
+Review any other routes that depend on the server-wide policy before changing it.
+
+
 | Symptom | Cause |
 |---|---|
-| `NETWORK` on connect | Server down, wrong port, or origin not allowed (no CORS headers) |
+| `NETWORK` on connect | Server down, wrong port, origin missing from CORS, or browser loopback permission blocked |
 | `ORIGIN_NOT_ALLOWED` | Add the exact origin shown in the message to `allowedOrigins` |
 | `BRIDGE_NOT_FOUND` / generic `{"retcode":0…}` | Bridge disabled (`enabled: false`), or another process owns the port |
 | `LOCAL_ONLY` | Request did not come from this machine via 127.0.0.1/localhost, or went through a proxy/tunnel |

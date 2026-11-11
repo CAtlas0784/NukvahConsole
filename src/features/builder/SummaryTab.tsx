@@ -1,8 +1,9 @@
+import { loadAssetIndex } from '@/lib/assetIndex';
 import { useMemo, useRef } from 'react';
 import { Copy, Download, Image as ImageIcon } from 'lucide-react';
 import { useT } from '@/i18n';
 import { useToasts } from '@/stores/ops';
-import { useSettings } from '@/stores/settings';
+import { useAssetBase } from '@/stores/settings';
 import { Artwork, elementColor, rarityColor } from '@/components/fx/Artwork';
 import { RarityStars } from '@/components/ui/Primitives';
 import { SLOTS, type Slot } from '@/data/types';
@@ -33,7 +34,7 @@ function loadImage(url: string): Promise<HTMLImageElement | null> {
 export function SummaryTab({ ctx }: { ctx: TabCtx }) {
   const t = useT();
   const toast = useToasts((s) => s.show);
-  const assetBase = useSettings((s) => s.assetBase);
+  const assetBase = useAssetBase();
   const { character, owned } = ctx;
   const name = t.loc(character.name);
   const weapon = owned.weapon;
@@ -88,7 +89,10 @@ export function SummaryTab({ ctx }: { ctx: TabCtx }) {
     g.fillStyle = `${accent}22`;
     g.fillRect(0, 0, 320, H);
 
-    const img = async (icon: string | undefined | null) => (assetBase && icon ? loadImage(`${assetBase}/${icon}.png`) : null);
+    // Same rule as <Artwork>: only keys from the verified asset index are drawn.
+    const verified = assetBase ? await loadAssetIndex(assetBase) : new Map();
+    const img = async (icon: string | undefined | null) =>
+      assetBase && icon && verified.has(icon) ? loadImage(`${assetBase}/${icon}.png`) : null;
     const drawIcon = (image: HTMLImageElement | null, x: number, y: number, size: number, color: string, label: string) => {
       g.save();
       g.beginPath();

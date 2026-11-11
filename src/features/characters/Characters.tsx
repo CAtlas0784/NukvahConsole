@@ -196,15 +196,17 @@ function CharacterDrawer({ character, owned, known, onClose, onChanged }: { char
       title: `${t('characters.grant')} — ${name}`,
       capability: 'avatars.grant',
       action: 'avatar.grant',
-      summary: `${name} Lv${level} C${cons} T${normal}`,
+      summary: `${name} Lv${level} C${cons} T${normal}/${skill}/${burst}`,
       lines: [
         { label: t('characters.title'), value: `${name} (#${c.id})` },
         { label: t('common.level'), value: String(level) },
         { label: t('characters.constellation'), value: `C${cons}` },
-        { label: t('characters.talentLevel'), value: String(normal) },
+        { label: t('characters.normal'), value: String(normal) },
+        { label: t('characters.skill'), value: String(skill) },
+        { label: t('characters.burst'), value: String(burst) },
       ],
-      request: { method: 'POST', path: '/players/{uid}/avatars', body: { avatarId: c.id, level, constellation: cons, talentLevel: normal } },
-      run: (conn, target) => api.grantAvatar(conn, target, { avatarId: c.id, level, constellation: cons, talentLevel: normal }),
+      request: { method: 'POST', path: '/players/{uid}/avatars', body: { avatarId: c.id, level, constellation: cons, normal, skill, burst } },
+      run: (conn, target) => api.grantAvatar(conn, target, { avatarId: c.id, level, constellation: cons, normal, skill, burst }),
     });
 
   const openUpdate = () => {
@@ -344,8 +346,8 @@ function CharacterDrawer({ character, owned, known, onClose, onChanged }: { char
             </div>
 
             <div>
-              <div className="label">{owned ? t('characters.talents') : t('characters.talentLevel')}</div>
-              {owned ? (
+              <div className="label">{t('characters.talents')}</div>
+              {(
                 <div className="grid gap-3 sm:grid-cols-3">
                   {(
                     [
@@ -362,10 +364,6 @@ function CharacterDrawer({ character, owned, known, onClose, onChanged }: { char
                       <div className="mt-1 truncate text-[11px] text-dim">{t.loc(c.talents?.[key]?.name)}</div>
                     </div>
                   ))}
-                </div>
-              ) : (
-                <div className="max-w-[180px]">
-                  <Stepper value={normal} onChange={setNormal} min={1} max={10} label={t('characters.talentLevel')} />
                 </div>
               )}
             </div>

@@ -8,6 +8,12 @@ import { useLiveCommands } from '@/api/hooks';
 import { api, type ExecuteResult } from '@/api/nukva';
 import { useCapability, useSession } from '@/stores/session';
 import { OperationDialog, type OperationSpec } from '@/components/ui/OperationDialog';
+import { IdInput } from '@/components/ui/IdInput';
+import { CommandLine } from './CommandLine';
+import { DANGEROUS_COMMANDS, argSpecs, examplesFor, typedAlternatives } from '@/lib/commandLine';
+import { Link } from 'react-router';
+import { CATEGORIES, categoryOf, groupByCategory, type CommandCategory } from '@/lib/commandCategories';
+import { kindsForArg } from '@/lib/suggest';
 import { CopyButton, DenialNotice, EmptyState, ErrorState, PageHeader, Panel, SkeletonGrid } from '@/components/ui/Primitives';
 import { buildCommand, isFlag, parseUsage } from '@/lib/usage';
 import { normalize } from '@/lib/search';
@@ -20,6 +26,7 @@ export default function Commands() {
   const snapshot = useCatalog('commands');
   const live = useLiveCommands();
   const [query, setQuery] = useState('');
+  const [category, setCategory] = useState<CommandCategory | 'all'>('all');
   const commands = live.data ?? snapshot.data;
   const isLive = !!live.data;
   const selectedLabel = params.get('cmd');
@@ -27,8 +34,10 @@ export default function Commands() {
 
   const list = useMemo(() => {
     const q = normalize(query);
-    return (commands ?? []).filter((c) => !q || normalize(`${c.label} ${c.aliases.join(' ')} ${c.description ?? ''} ${c.permission}`).includes(q));
-  }, [commands, query]);
+    return (commands ?? []).filter((c) => (category === 'all' || categoryOf(c.label) === category) && (!q || normalize(`${c.label} ${c.aliases.join(' ')} ${c.description ?? ''} ${c.permission}`).includes(q)));
+  }, [commands, query, category]);
+  const counts = useMemo(() => groupByCategory(commands ?? []), [commands]);
+  const grouped = useMemo(() => groupByCategory(list), [list]);
 
   return (
     <>
@@ -46,14 +55,32 @@ export default function Commands() {
       ) : !commands ? (
         <SkeletonGrid count={9} className="h-12" />
       ) : (
+        <>
+        <div className="mb-6">
+          <CommandLine commands={commands} live={isLive} onCommand={(label) => label !== selected?.label && setParams({ cmd: label })} />
+        </div>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[240px_1fr] xl:grid-cols-[300px_1fr]">
           <div className="min-w-0">
             <div className="relative mb-3">
               <Search size={15} className="absolute top-1/2 left-3 -translate-y-1/2 text-dim" />
               <input className="field pl-9" placeholder={t('common.search')} value={query} onChange={(e) => setQuery(e.target.value)} aria-label={t('common.search')} />
             </div>
+            <div className="mb-3 flex flex-wrap gap-1.5" role="group" aria-label={t('commands.cat.all')}>
+              {(['all', ...CATEGORIES] as const).map((cat) => (
+                <button key={cat} className="chip" aria-pressed={category === cat} onClick={() => setCategory(cat)}>
+                  {t.dyn(`commands.cat.${cat}`)} <span className="font-mono text-[10px] opacity-70">{cat === 'all' ? (commands ?? []).length : counts.get(cat)?.length ?? 0}</span>
+                </button>
+              ))}
+            </div>
             <ul className="scroll-fade max-h-[72vh] space-y-0.5 overflow-y-auto py-2 pr-1">
-              {list.map((c) => (
+              {CATEGORIES.flatMap((cat) => {
+                const items = grouped.get(cat) ?? [];
+                if (items.length === 0) return [];
+                return [
+                  <li key={`h-${cat}`} className="px-3 pt-3 pb-1 text-[10px] font-semibold tracking-[0.22em] text-dim uppercase">
+                    {t.dyn(`commands.cat.${cat}`)}
+                  </li>,
+                  ...items.map((c) => (
                 <li key={c.label}>
                   <button onClick={() => setParams({ cmd: c.label })} className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors ${selected?.label === c.label ? 'bg-gold/10 text-ivory ring-1 ring-gold/30' : 'text-mist hover:bg-white/[0.03] hover:text-ivory'}`}>
                     <Terminal size={13} className={selected?.label === c.label ? 'text-gold' : 'text-dim'} />
@@ -61,12 +88,15 @@ export default function Commands() {
                     {c.executable && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-ok" title="executable" />}
                   </button>
                 </li>
-              ))}
+                  )),
+                ];
+              })}
               {list.length === 0 && <li className="px-3 py-6 text-center text-sm text-dim">{t('search.empty', { q: query })}</li>}
             </ul>
           </div>
           {selected ? <CommandDetail key={selected.label} command={selected} live={isLive} /> : <EmptyState title="—" />}
         </div>
+        </>
       )}
     </>
   );
@@ -80,6 +110,8 @@ function CommandDetail({ command: c, live }: { command: CommandInfo; live: boole
   const [values, setValues] = useState<Record<string, string>>({});
   const [spec, setSpec] = useState<OperationSpec<ExecuteResult> | null>(null);
   const [output, setOutput] = useState<ExecuteResult | null>(null);
+  const dangerous = DANGEROUS_COMMANDS.has(c.label.toLowerCase());
+  const [ack, setAck] = useState(false);
   const usage = c.usage[usageIndex] ?? '';
   const parts = useMemo(() => parseUsage(usage), [usage]);
   const built = buildCommand(c.label, parts, values);
@@ -94,6 +126,7 @@ function CommandDetail({ command: c, live }: { command: CommandInfo; live: boole
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="font-mono text-3xl text-gilded">/{c.label}</div>
+            <span className="mt-2 inline-block rounded-md border border-gold/25 bg-gold/[0.06] px-2 py-0.5 text-[11px] text-gold">{t.dyn(`commands.cat.${categoryOf(c.label)}`)}</span>
             <p className="mt-2 max-w-2xl text-sm text-mist">{c.description ?? t('commands.noDescription')}</p>
           </div>
           <ScrollText className="text-gold/50" size={28} />
@@ -116,6 +149,22 @@ function CommandDetail({ command: c, live }: { command: CommandInfo; live: boole
             <dd className="text-ivory">{target}</dd>
           </div>
         </dl>
+        {typedAlternatives(c).length > 0 && (
+          <div className="mt-5 rounded-xl border border-cyan/25 bg-cyan/[0.04] px-4 py-3 text-sm text-cyan">
+            <div>{t('commands.preferTypedLong')}</div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {typedAlternatives(c).map((a) => (
+                <Link key={a.to} to={a.to} className="btn btn-ghost btn-sm">
+                  {t.dyn(`commands.typed.${a.key}`)}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+        <div className="mt-6">
+          <div className="label">{t('commands.status')}</div>
+          <p className={`text-sm ${c.executable ? 'text-ok' : 'text-dim'}`}>{c.executable ? t('commands.statusExecutable') : t('commands.statusListOnly')}</p>
+        </div>
         <div className="mt-6">
           <div className="label">{t('commands.usage')}</div>
           <ul className="space-y-1.5">
@@ -128,6 +177,51 @@ function CommandDetail({ command: c, live }: { command: CommandInfo; live: boole
             ))}
           </ul>
         </div>
+      </Panel>
+
+      <Panel className="p-6" eyebrow={t('commands.arguments')}>
+        {argSpecs(usage).length === 0 ? (
+          <p className="text-sm text-dim">{t('commands.noArguments')}</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-left text-[11px] tracking-[0.12em] text-dim uppercase">
+                <tr>
+                  <th className="py-1.5 pr-4 font-semibold">{t('commands.argName')}</th>
+                  <th className="py-1.5 pr-4 font-semibold">{t('commands.argNeed')}</th>
+                  <th className="py-1.5 font-semibold">{t('commands.argType')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {argSpecs(usage).map((a, i) => (
+                  <tr key={i} className="border-t border-white/[0.04]">
+                    <td className="py-1.5 pr-4 font-mono text-xs text-gold">{a.text}{a.repeat ? ' …' : ''}</td>
+                    <td className="py-1.5 pr-4 text-xs text-mist">{a.required ? t('commands.required') : t('commands.optional')}</td>
+                    <td className="py-1.5 text-xs text-mist">
+                      {t.dyn(`commands.argTypes.${a.type}`)}
+                      {a.kinds.length > 0 && <span className="text-dim"> · {a.kinds.map((k) => t.dyn(`commands.kinds.${k}`)).join(', ')}</span>}
+                      {a.options.length > 0 && <span className="font-mono text-dim"> · {a.options.join(' | ')}</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {examplesFor(c).length > 0 && (
+          <div className="mt-5">
+            <div className="label">{t('commands.examples')}</div>
+            <ul className="space-y-1.5">
+              {examplesFor(c).map((ex) => (
+                <li key={ex} className="flex items-center gap-2 rounded-lg border border-line bg-abyss/60 px-3 py-1.5">
+                  <code className="min-w-0 flex-1 truncate font-mono text-xs text-cyan">/{ex}</code>
+                  <CopyButton value={`/${ex}`} label={t('common.copy')} />
+                </li>
+              ))}
+            </ul>
+            <p className="mt-1 text-[11px] text-dim">{t('commands.examplesNote')}</p>
+          </div>
+        )}
       </Panel>
 
       <Panel className="p-6" eyebrow={t('commands.builder')}>
@@ -152,7 +246,9 @@ function CommandDetail({ command: c, live }: { command: CommandInfo; live: boole
                       ))}
                     </select>
                     {part.options.some((o) => /^<.*>$/.test(o)) && (
-                      <input className="field mt-2 font-mono text-sm" placeholder={part.options.filter((o) => /^<.*>$/.test(o)).join(' / ')} value={values[part.key] ?? ''} onChange={(e) => setValues((v) => ({ ...v, [part.key]: e.target.value }))} aria-label={part.options.join(' | ')} />
+                      <div className="mt-2">
+                        <IdInput id={`${id}-text`} kinds={kindsForArg(part.options.filter((o) => /^<.*>$/.test(o)).join(' '))} placeholder={part.options.filter((o) => /^<.*>$/.test(o)).join(' / ')} value={values[part.key] ?? ''} onChange={(v) => setValues((all) => ({ ...all, [part.key]: v }))} ariaLabel={part.options.join(' | ')} />
+                      </div>
                     )}
                   </div>
                 );
@@ -172,7 +268,11 @@ function CommandDetail({ command: c, live }: { command: CommandInfo; live: boole
                     <span className="font-mono tracking-normal normal-case text-gold">{part.prefix}&lt;{part.name}&gt;</span>
                     <span className="font-normal normal-case text-dim"> · {part.optional ? t('commands.optional') : t('commands.required')}{part.repeat ? ' · …' : ''}</span>
                   </label>
-                  <input id={id} className="field font-mono text-sm" placeholder={`<${part.name}>`} value={values[part.key] ?? ''} onChange={(e) => setValues((v) => ({ ...v, [part.key]: e.target.value }))} />
+                  {kindsForArg(part.name).length > 0 ? (
+                    <IdInput id={id} kinds={kindsForArg(part.name)} multi={part.repeat || part.name.includes(',')} placeholder={`<${part.name}> · ${t('commands.idPlaceholder')}`} value={values[part.key] ?? ''} onChange={(v) => setValues((all) => ({ ...all, [part.key]: v }))} />
+                  ) : (
+                    <input id={id} className="field font-mono text-sm" placeholder={`<${part.name}>`} value={values[part.key] ?? ''} onChange={(e) => setValues((v) => ({ ...v, [part.key]: e.target.value }))} />
+                  )}
                 </div>
               );
             })}
@@ -192,9 +292,15 @@ function CommandDetail({ command: c, live }: { command: CommandInfo; live: boole
           ) : !c.executable ? (
             <p className="text-xs text-dim">{t('commands.notAllowlisted')}</p>
           ) : null}
+          {dangerous && (
+            <label className="flex items-start gap-2.5 rounded-xl border border-danger/30 bg-danger/[0.06] px-3 py-2.5 text-sm text-danger">
+              <span className="flex-1">{t('commands.dangerText')}</span>
+              <input type="checkbox" className="mt-1 accent-[#ff6b6b]" checked={ack} onChange={(e) => setAck(e.target.checked)} aria-label={t('commands.dangerAck')} />
+            </label>
+          )}
           <button
             className="btn btn-ghost"
-            disabled={!executable || !cap.allowed || built.missing.length > 0 || !uid}
+            disabled={!executable || !cap.allowed || built.missing.length > 0 || !uid || (dangerous && !ack)}
             onClick={() =>
               setSpec({
                 title: t('commands.execute'),

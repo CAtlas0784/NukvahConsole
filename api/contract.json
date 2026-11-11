@@ -1,0 +1,1594 @@
+{
+  "$comment": "Nukva bridge API contract (SnezhnayaCore /nukva/v1). Source of truth for src/api/generated.ts (npm run api:types) and for the route check against the live server's GET /routes. Schema subset: type object/array/string/integer/number/boolean/null, properties, required, items, enum, additionalProperties, oneOf, $ref (#/definitions/X), nullable.",
+  "basePath": "/nukva/v1",
+  "apiVersion": 1,
+  "envelope": {
+    "success": "{ ok: true, data: <response> }",
+    "error": "{ ok: false, error: { code, detail?, message }, data?: <partial state> } with the HTTP status listed per code"
+  },
+  "headers": {
+    "Idempotency-Key": "optional on every write; 8-128 printable ASCII. A repeat with the same key and request returns the stored result (response header Idempotency-Replayed: true) instead of running again."
+  },
+  "errors": {
+    "ORIGIN_NOT_ALLOWED": {
+      "status": 403,
+      "when": "browser Origin not in nukva.json allowedOrigins"
+    },
+    "LOCAL_ONLY": {
+      "status": 403,
+      "when": "request did not come from this machine's loopback (or went through a proxy)"
+    },
+    "RATE_LIMITED": {
+      "status": 429,
+      "when": "requests or writes per minute exceeded"
+    },
+    "FORBIDDEN": {
+      "status": 403,
+      "when": "role too low for the route"
+    },
+    "PERMISSION_DENIED": {
+      "status": 403,
+      "when": "target UID not writable per nukva.json targets (allowUids / denyUids)"
+    },
+    "INVALID_IDEMPOTENCY_KEY": {
+      "status": 400,
+      "when": "Idempotency-Key malformed"
+    },
+    "IN_PROGRESS": {
+      "status": 409,
+      "when": "same Idempotency-Key still running (or timed out on the game thread)"
+    },
+    "IDEMPOTENCY_KEY_REUSED": {
+      "status": 422,
+      "when": "same Idempotency-Key used for a different request"
+    },
+    "INVALID_JSON": {
+      "status": 400,
+      "when": "body is not valid JSON for the operation"
+    },
+    "MISSING_BODY": {
+      "status": 400,
+      "when": "no body / nothing to change"
+    },
+    "MISSING_FIELD": {
+      "status": 400,
+      "when": "a required field is absent"
+    },
+    "INVALID_NUMBER": {
+      "status": 400,
+      "when": "a path number is not an integer"
+    },
+    "OUT_OF_RANGE": {
+      "status": 400,
+      "when": "a value is outside the allowed range"
+    },
+    "INVALID_TYPE": {
+      "status": 400,
+      "when": "unknown item type filter"
+    },
+    "UNKNOWN_AVATAR": {
+      "status": 400,
+      "when": "avatar id not in the server's game data"
+    },
+    "UNKNOWN_ITEM": {
+      "status": 400,
+      "when": "item id not in the server's game data"
+    },
+    "UNKNOWN_MONSTER": {
+      "status": 400,
+      "when": "monster id not in the server's game data"
+    },
+    "UNKNOWN_SCENE": {
+      "status": 400,
+      "when": "scene id not in the server's game data"
+    },
+    "NOT_AN_ARTIFACT": {
+      "status": 400,
+      "when": "item is not an artifact"
+    },
+    "NOT_A_WEAPON": {
+      "status": 400,
+      "when": "refinement given for a non-weapon"
+    },
+    "NOT_EQUIPMENT": {
+      "status": 400,
+      "when": "item cannot be equipped or edited"
+    },
+    "INVALID_GUID": {
+      "status": 400,
+      "when": "guid is not a positive integer"
+    },
+    "INVALID_SLOT": {
+      "status": 400,
+      "when": "slot is not flower/plume/sands/goblet/circlet"
+    },
+    "WEAPON_REQUIRED": {
+      "status": 400,
+      "when": "attempt to unequip a weapon"
+    },
+    "INVALID_POSITION": {
+      "status": 400,
+      "when": "non-finite coordinates"
+    },
+    "BATCH_TOO_LARGE": {
+      "status": 400,
+      "when": "more than limits.maxBatchSize entries"
+    },
+    "UNSUPPORTED_OPERATION": {
+      "status": 400,
+      "when": "the target exists but the operation is not supported for it (detail NOT_PLAYABLE: trial/test/UGC avatar)"
+    },
+    "INVALID_ARTIFACT_CONFIG": {
+      "status": 400,
+      "when": "artifact stats invalid; detail is one of INVALID_MAIN_STAT, MAIN_STAT_NOT_ALLOWED_FOR_SLOT, MAIN_STAT_REQUIRED, INVALID_SUBSTAT, TOO_MANY_SUBSTATS, TOO_MANY_SUBSTAT_TYPES, SUBSTAT_EQUALS_MAIN, DUPLICATE_INITIAL_SUBSTAT, UPGRADE_BEFORE_FOUR_TYPES, ROLL_COUNT_MISMATCH, INVALID_INITIAL_SUBSTATS, ROLLS_NOT_ALLOWED, RANDOM_ROLL_UNAVAILABLE (409)"
+    },
+    "PLAYER_NOT_FOUND": {
+      "status": 409,
+      "when": "no player with this UID exists"
+    },
+    "PLAYER_OFFLINE": {
+      "status": 409,
+      "when": "player exists but is offline (writes apply to online players only)"
+    },
+    "AVATAR_NOT_OWNED": {
+      "status": 409,
+      "when": "player does not own the character"
+    },
+    "ALREADY_OWNED": {
+      "status": 409,
+      "when": "character already owned"
+    },
+    "ITEM_NOT_FOUND": {
+      "status": 409,
+      "when": "no item with this guid / artifact id unknown"
+    },
+    "ITEM_EQUIPPED_ELSEWHERE": {
+      "status": 409,
+      "when": "item equipped on another character"
+    },
+    "SLOT_EMPTY": {
+      "status": 409,
+      "when": "nothing to unequip"
+    },
+    "INVENTORY_FULL": {
+      "status": 409,
+      "when": "weapons/artifacts would exceed the inventory tab capacity; nothing was added"
+    },
+    "NO_SCENE": {
+      "status": 409,
+      "when": "player not in a scene"
+    },
+    "SCENE_UNAVAILABLE": {
+      "status": 400,
+      "when": "scene could not be loaded"
+    },
+    "NOT_APPLIED": {
+      "status": 409,
+      "when": "the server's own method refused the change"
+    },
+    "STATE_VERIFICATION_FAILED": {
+      "status": 409,
+      "when": "the change ran but the read-back did not show it; data holds the state that was read"
+    },
+    "SERVER_UNAVAILABLE": {
+      "status": "503/504",
+      "when": "no game server in this process (503) or the game thread did not finish in time (504, detail GAME_THREAD_TIMEOUT; re-read state)"
+    },
+    "RAW_COMMANDS_DISABLED": {
+      "status": 403,
+      "when": "raw command execution off"
+    },
+    "COMMAND_NOT_ALLOWED": {
+      "status": 403,
+      "when": "command not in the allowlist"
+    },
+    "UNKNOWN_COMMAND": {
+      "status": 400,
+      "when": "no such command"
+    },
+    "INVALID_COMMAND": {
+      "status": 400,
+      "when": "empty, too long, control characters or @targets"
+    },
+    "INTERNAL_ERROR": {
+      "status": 500,
+      "when": "unexpected server error (logged)"
+    },
+    "INVALID_MODE": {
+      "status": 400,
+      "when": "artifact mode is not normal or custom"
+    },
+    "SLOT_OCCUPIED": {
+      "status": 409,
+      "when": "equipping an artifact into a slot that holds another one without replace: true; data.current is the worn piece"
+    },
+    "ITEM_EQUIPPED": {
+      "status": 409,
+      "when": "deleting an artifact that is equipped (unequip first)"
+    },
+    "CONFIRMATION_REQUIRED": {
+      "status": 400,
+      "when": "delete without ?confirm=<same guid>"
+    },
+    "UNSUPPORTED_ITEM": {
+      "status": 400,
+      "when": "the item exists but the server cannot give it (detail: NO_SERVER_HANDLER, CONSUMED_ON_GAIN, USE_CHARACTER_BUILDER, SERVER_REFUSES, NOT_A_COMBAT_WEAPON, NOT_A_SET_PIECE, NO_ITEM_TYPE, UNSUPPORTED_TYPE)"
+    },
+    "STACK_LIMIT_EXCEEDED": {
+      "status": 409,
+      "when": "current count + requested amount is above the item's stack limit (data: current, limit, maxAddable); nothing is added"
+    },
+    "INVALID_ASCENSION": {
+      "status": 400,
+      "when": "promoteLevel is not valid for the level (data.allowed lists the valid ones)"
+    },
+    "WEAPON_TYPE_MISMATCH": {
+      "status": 409,
+      "when": "the weapon's type is not the character's weapon type"
+    },
+    "POINT_NOT_FOUND": {
+      "status": 409,
+      "when": "the scene has no such point in the server's loaded point data (data.loadedPoints = how many it has)"
+    }
+  },
+  "definitions": {
+    "Slot": {
+      "type": "string",
+      "enum": [
+        "flower",
+        "plume",
+        "sands",
+        "goblet",
+        "circlet"
+      ]
+    },
+    "Range": {
+      "type": "array",
+      "items": {
+        "type": "integer"
+      }
+    },
+    "ApiErrorBody": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ]
+    },
+    "CatalogCharacter": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "rarity": {
+          "type": "integer"
+        },
+        "weaponType": {
+          "type": "string",
+          "nullable": true
+        },
+        "skillDepotId": {
+          "type": "integer"
+        },
+        "traveler": {
+          "type": "boolean"
+        },
+        "initialWeapon": {
+          "type": "integer"
+        },
+        "limits": {
+          "type": "object",
+          "properties": {
+            "level": {
+              "$ref": "#/definitions/Range"
+            },
+            "constellation": {
+              "$ref": "#/definitions/Range"
+            },
+            "talent": {
+              "$ref": "#/definitions/Range"
+            },
+            "fetter": {
+              "$ref": "#/definitions/Range"
+            }
+          },
+          "required": [
+            "level",
+            "constellation",
+            "talent",
+            "fetter"
+          ]
+        },
+        "weapon": {
+          "type": "string",
+          "nullable": true,
+          "enum": [
+            "sword",
+            "claymore",
+            "polearm",
+            "catalyst",
+            "bow"
+          ]
+        },
+        "ascensionCaps": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "rarity",
+        "weaponType",
+        "skillDepotId",
+        "traveler",
+        "initialWeapon",
+        "limits",
+        "weapon",
+        "ascensionCaps"
+      ]
+    },
+    "CatalogItem": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "type": {
+          "type": "string",
+          "nullable": true
+        },
+        "materialType": {
+          "type": "string",
+          "nullable": true
+        },
+        "rarity": {
+          "type": "integer"
+        },
+        "stackable": {
+          "type": "boolean"
+        },
+        "consumedOnGain": {
+          "type": "boolean"
+        },
+        "maxAmount": {
+          "type": "integer"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "stackable",
+            "currency",
+            "unlock",
+            "weapon",
+            "artifact",
+            "unsupported"
+          ]
+        },
+        "supported": {
+          "type": "boolean"
+        },
+        "reason": {
+          "type": "string",
+          "nullable": true
+        },
+        "stackLimit": {
+          "type": "integer",
+          "nullable": true
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "materialType",
+        "rarity",
+        "stackable",
+        "consumedOnGain",
+        "maxAmount",
+        "kind",
+        "supported",
+        "reason",
+        "stackLimit"
+      ]
+    },
+    "CatalogWeapon": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "rarity": {
+          "type": "integer"
+        },
+        "weaponType": {
+          "type": "string",
+          "enum": [
+            "sword",
+            "claymore",
+            "polearm",
+            "catalyst",
+            "bow"
+          ]
+        },
+        "limits": {
+          "type": "object",
+          "properties": {
+            "level": {
+              "$ref": "#/definitions/Range"
+            },
+            "refinement": {
+              "$ref": "#/definitions/Range"
+            },
+            "amount": {
+              "$ref": "#/definitions/Range"
+            }
+          },
+          "required": [
+            "level",
+            "refinement",
+            "amount"
+          ]
+        },
+        "ascensionCaps": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "rarity",
+        "weaponType",
+        "limits",
+        "ascensionCaps"
+      ]
+    },
+    "ArtifactCatalogPiece": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "rarity": {
+          "type": "integer"
+        },
+        "maxLevel": {
+          "type": "integer"
+        },
+        "mainPropDepotId": {
+          "type": "integer"
+        },
+        "appendPropDepotId": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "rarity",
+        "maxLevel",
+        "mainPropDepotId",
+        "appendPropDepotId"
+      ]
+    },
+    "ArtifactCatalogSet": {
+      "type": "object",
+      "properties": {
+        "setId": {
+          "type": "integer"
+        },
+        "known": {
+          "type": "boolean"
+        },
+        "setNeedNum": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "nullable": true
+        },
+        "pieces": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "$ref": "#/definitions/ArtifactCatalogPiece"
+            }
+          }
+        }
+      },
+      "required": [
+        "setId",
+        "known",
+        "setNeedNum",
+        "pieces"
+      ]
+    },
+    "ArtifactPieceOptions": {
+      "type": "object",
+      "properties": {
+        "itemId": {
+          "type": "integer"
+        },
+        "setId": {
+          "type": "integer"
+        },
+        "slot": {
+          "$ref": "#/definitions/Slot",
+          "nullable": true
+        },
+        "rarity": {
+          "type": "integer"
+        },
+        "level": {
+          "$ref": "#/definitions/Range"
+        },
+        "initialSubstats": {
+          "type": "integer"
+        },
+        "rollsAtMaxLevel": {
+          "type": "integer"
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "mainStats": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "prop": {
+                "type": "string",
+                "nullable": true
+              },
+              "weight": {
+                "type": "integer"
+              },
+              "rollable": {
+                "type": "boolean"
+              },
+              "allowed": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "id",
+              "prop",
+              "weight",
+              "rollable",
+              "allowed"
+            ]
+          }
+        },
+        "substats": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer"
+                },
+                "value": {
+                  "type": "number"
+                },
+                "weight": {
+                  "type": "integer"
+                },
+                "tier": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "id",
+                "value",
+                "weight",
+                "tier"
+              ]
+            }
+          }
+        },
+        "appendPropNum": {
+          "type": "integer"
+        },
+        "allowedStarts": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "upgradeLevels": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        }
+      },
+      "required": [
+        "itemId",
+        "setId",
+        "slot",
+        "rarity",
+        "level",
+        "initialSubstats",
+        "rollsAtMaxLevel",
+        "rules",
+        "mainStats",
+        "substats",
+        "appendPropNum",
+        "allowedStarts",
+        "upgradeLevels"
+      ]
+    },
+    "InventoryItem": {
+      "type": "object",
+      "properties": {
+        "guid": {
+          "type": "string"
+        },
+        "itemId": {
+          "type": "integer"
+        },
+        "type": {
+          "type": "string"
+        },
+        "count": {
+          "type": "integer"
+        },
+        "level": {
+          "type": "integer"
+        },
+        "refinement": {
+          "type": "integer"
+        },
+        "mainPropId": {
+          "type": "integer"
+        },
+        "appendPropIds": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "slot": {
+          "type": "string"
+        },
+        "equippedAvatarId": {
+          "type": "integer"
+        },
+        "promoteLevel": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "guid",
+        "itemId",
+        "type",
+        "count",
+        "level"
+      ]
+    },
+    "GiveItemEntry": {
+      "type": "object",
+      "properties": {
+        "itemId": {
+          "type": "integer"
+        },
+        "amount": {
+          "type": "integer"
+        },
+        "level": {
+          "type": "integer"
+        },
+        "refinement": {
+          "type": "integer"
+        },
+        "promoteLevel": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6
+        }
+      },
+      "required": [
+        "itemId",
+        "amount"
+      ]
+    },
+    "GiveItemsRequest": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/GiveItemEntry"
+          }
+        }
+      },
+      "required": [
+        "items"
+      ]
+    },
+    "GiveItemResult": {
+      "type": "object",
+      "properties": {
+        "itemId": {
+          "type": "integer"
+        },
+        "type": {
+          "type": "string"
+        },
+        "requested": {
+          "type": "integer"
+        },
+        "added": {
+          "type": "integer"
+        },
+        "guids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "verification": {
+          "type": "string",
+          "enum": [
+            "verified",
+            "mismatch",
+            "not-countable"
+          ]
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "error": {
+          "type": "string",
+          "nullable": true
+        },
+        "note": {
+          "type": "string",
+          "nullable": true
+        },
+        "kind": {
+          "type": "string"
+        },
+        "before": {
+          "type": "integer"
+        },
+        "after": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "itemId",
+        "type",
+        "requested",
+        "added",
+        "guids",
+        "verification",
+        "success"
+      ]
+    },
+    "GiveItemsResult": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "results": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/GiveItemResult"
+          }
+        }
+      },
+      "required": [
+        "success",
+        "results"
+      ]
+    },
+    "GiveArtifactRequest": {
+      "type": "object",
+      "properties": {
+        "itemId": {
+          "type": "integer"
+        },
+        "level": {
+          "type": "integer"
+        },
+        "mainPropId": {
+          "type": "integer"
+        },
+        "appendPropIds": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "amount": {
+          "type": "integer"
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "normal",
+            "custom"
+          ]
+        },
+        "initialSubstats": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "itemId",
+        "level"
+      ]
+    },
+    "GiveArtifactResult": {
+      "type": "object",
+      "properties": {
+        "itemId": {
+          "type": "integer"
+        },
+        "requested": {
+          "type": "integer"
+        },
+        "added": {
+          "type": "integer"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "rolls": {
+          "type": "integer"
+        },
+        "expectedRolls": {
+          "type": "integer"
+        },
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/InventoryItem"
+          }
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "normal",
+            "custom",
+            "legacy"
+          ]
+        },
+        "initialSubstats": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "itemId",
+        "requested",
+        "added",
+        "success",
+        "rolls",
+        "expectedRolls",
+        "artifacts",
+        "mode",
+        "initialSubstats"
+      ]
+    },
+    "EquipArtifactRequest": {
+      "type": "object",
+      "properties": {
+        "avatarId": {
+          "type": "integer"
+        },
+        "replace": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "avatarId"
+      ]
+    },
+    "EquipRequest": {
+      "type": "object",
+      "properties": {
+        "guid": {
+          "type": "string"
+        },
+        "replace": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "guid"
+      ]
+    },
+    "UnequipRequest": {
+      "type": "object",
+      "properties": {
+        "slot": {
+          "$ref": "#/definitions/Slot"
+        }
+      },
+      "required": [
+        "slot"
+      ]
+    },
+    "GrantAvatarRequest": {
+      "type": "object",
+      "properties": {
+        "avatarId": {
+          "type": "integer"
+        },
+        "level": {
+          "type": "integer"
+        },
+        "constellation": {
+          "type": "integer"
+        },
+        "talentLevel": {
+          "type": "integer"
+        },
+        "normal": {
+          "type": "integer"
+        },
+        "skill": {
+          "type": "integer"
+        },
+        "burst": {
+          "type": "integer"
+        },
+        "promoteLevel": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6
+        }
+      },
+      "required": [
+        "avatarId"
+      ]
+    },
+    "UpdateAvatarRequest": {
+      "type": "object",
+      "properties": {
+        "level": {
+          "type": "integer"
+        },
+        "constellation": {
+          "type": "integer"
+        },
+        "normal": {
+          "type": "integer"
+        },
+        "skill": {
+          "type": "integer"
+        },
+        "burst": {
+          "type": "integer"
+        },
+        "fetter": {
+          "type": "integer"
+        },
+        "promoteLevel": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6
+        }
+      }
+    },
+    "MaxRequest": {
+      "type": "object",
+      "properties": {
+        "apply": {
+          "type": "boolean"
+        }
+      }
+    },
+    "PatchItemRequest": {
+      "type": "object",
+      "properties": {
+        "level": {
+          "type": "integer"
+        },
+        "refinement": {
+          "type": "integer"
+        },
+        "mainPropId": {
+          "type": "integer"
+        },
+        "appendPropIds": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "custom"
+          ]
+        },
+        "promoteLevel": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6
+        }
+      }
+    },
+    "WorldLevelRequest": {
+      "type": "object",
+      "properties": {
+        "worldLevel": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "worldLevel"
+      ]
+    },
+    "TeleportRequest": {
+      "type": "object",
+      "properties": {
+        "sceneId": {
+          "type": "integer"
+        },
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "z": {
+          "type": "number"
+        },
+        "pointId": {
+          "type": "integer",
+          "description": "a point of the scene; the server lands on its own tranPos/pos. Not combined with x/y/z."
+        }
+      },
+      "required": [
+        "sceneId"
+      ]
+    },
+    "SpawnRequest": {
+      "type": "object",
+      "properties": {
+        "monsterId": {
+          "type": "integer"
+        },
+        "amount": {
+          "type": "integer"
+        },
+        "level": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "monsterId",
+        "amount",
+        "level"
+      ]
+    },
+    "ExecuteRequest": {
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "integer"
+        },
+        "command": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "uid",
+        "command"
+      ]
+    },
+    "RouteInfo": {
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "write": {
+          "type": "boolean"
+        },
+        "audit": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "method",
+        "path",
+        "role",
+        "write"
+      ]
+    },
+    "DeleteItemResult": {
+      "type": "object",
+      "properties": {
+        "deleted": {
+          "$ref": "#/definitions/InventoryItem"
+        },
+        "success": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "deleted",
+        "success"
+      ]
+    }
+  },
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/health",
+      "auth": "none",
+      "response": "object"
+    },
+    {
+      "method": "GET",
+      "path": "/status",
+      "role": "viewer",
+      "response": "ServerStatus (src/api/nukva.ts)"
+    },
+    {
+      "method": "GET",
+      "path": "/routes",
+      "role": "viewer",
+      "response": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/RouteInfo"
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/players",
+      "role": "viewer",
+      "response": "OnlinePlayer[]"
+    },
+    {
+      "method": "GET",
+      "path": "/players/{uid}",
+      "role": "viewer",
+      "response": "PlayerSummary",
+      "errors": [
+        "PLAYER_NOT_FOUND",
+        "PLAYER_OFFLINE"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/players/{uid}/avatars",
+      "role": "viewer",
+      "response": "OwnedAvatar[]",
+      "errors": [
+        "PLAYER_NOT_FOUND",
+        "PLAYER_OFFLINE"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/players/{uid}/inventory",
+      "role": "viewer",
+      "query": {
+        "type": "ItemType name"
+      },
+      "response": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/InventoryItem"
+        }
+      },
+      "errors": [
+        "PLAYER_NOT_FOUND",
+        "PLAYER_OFFLINE"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/players/{uid}/artifacts",
+      "role": "viewer",
+      "proposed": "GET /api/v1/players/{uid}/artifacts",
+      "response": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/InventoryItem"
+        }
+      },
+      "errors": [
+        "PLAYER_NOT_FOUND",
+        "PLAYER_OFFLINE"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/commands",
+      "role": "viewer",
+      "response": "CommandInfo[]"
+    },
+    {
+      "method": "GET",
+      "path": "/audit",
+      "role": "viewer",
+      "query": {
+        "limit": "1-200"
+      },
+      "response": "AuditEntry[]"
+    },
+    {
+      "method": "GET",
+      "path": "/catalog/loaded",
+      "role": "viewer",
+      "response": "object (ids per category)"
+    },
+    {
+      "method": "GET",
+      "path": "/scenes",
+      "role": "viewer",
+      "response": "array of {sceneId, type, points}"
+    },
+    {
+      "method": "GET",
+      "path": "/scenes/{sceneId}/points",
+      "role": "viewer",
+      "response": "{sceneId, points: [{pointId, type, areaId, pos, tranPos, tranSceneId, dungeonIds, teleportable}]}",
+      "errors": [
+        "UNKNOWN_SCENE"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/catalog/characters",
+      "role": "viewer",
+      "proposed": "GET /api/v1/catalog/characters",
+      "response": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/CatalogCharacter"
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/catalog/items",
+      "role": "viewer",
+      "proposed": "GET /api/v1/catalog/items",
+      "query": {
+        "type": "ItemType name"
+      },
+      "response": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/CatalogItem"
+        }
+      },
+      "errors": [
+        "INVALID_TYPE"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/catalog/weapons",
+      "role": "viewer",
+      "proposed": "GET /api/v1/catalog/weapons",
+      "response": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/CatalogWeapon"
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/artifacts/catalog",
+      "role": "viewer",
+      "proposed": "GET /api/v1/artifacts/catalog",
+      "response": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/ArtifactCatalogSet"
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/artifacts/pieces/{itemId}/options",
+      "role": "viewer",
+      "proposed": "GET /api/v1/artifacts/pieces/{itemId}/options",
+      "response": {
+        "$ref": "#/definitions/ArtifactPieceOptions"
+      },
+      "errors": [
+        "ITEM_NOT_FOUND",
+        "INVALID_NUMBER"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/players/{uid}/avatars",
+      "role": "operator",
+      "write": true,
+      "request": {
+        "$ref": "#/definitions/GrantAvatarRequest"
+      },
+      "response": "OwnedAvatar",
+      "errors": [
+        "UNKNOWN_AVATAR",
+        "UNSUPPORTED_OPERATION",
+        "OUT_OF_RANGE",
+        "ALREADY_OWNED",
+        "STATE_VERIFICATION_FAILED",
+        "INVALID_ASCENSION"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/players/{uid}/avatars/{avatarId}",
+      "role": "operator",
+      "write": true,
+      "request": {
+        "$ref": "#/definitions/UpdateAvatarRequest"
+      },
+      "response": "OwnedAvatar + rejected[] + sceneReloaded",
+      "errors": [
+        "AVATAR_NOT_OWNED",
+        "OUT_OF_RANGE",
+        "STATE_VERIFICATION_FAILED",
+        "INVALID_ASCENSION",
+        "MISSING_BODY"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/players/{uid}/avatars/{avatarId}/equip",
+      "role": "operator",
+      "write": true,
+      "request": {
+        "$ref": "#/definitions/EquipRequest"
+      },
+      "response": "OwnedAvatar + alreadyEquipped",
+      "errors": [
+        "ITEM_NOT_FOUND",
+        "NOT_EQUIPMENT",
+        "ITEM_EQUIPPED_ELSEWHERE",
+        "NOT_APPLIED",
+        "STATE_VERIFICATION_FAILED",
+        "SLOT_OCCUPIED",
+        "WEAPON_TYPE_MISMATCH",
+        "AVATAR_NOT_OWNED"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/players/{uid}/avatars/{avatarId}/unequip",
+      "role": "operator",
+      "write": true,
+      "request": {
+        "$ref": "#/definitions/UnequipRequest"
+      },
+      "response": "OwnedAvatar",
+      "errors": [
+        "INVALID_SLOT",
+        "WEAPON_REQUIRED",
+        "SLOT_EMPTY",
+        "NOT_APPLIED",
+        "STATE_VERIFICATION_FAILED"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/players/{uid}/avatars/{avatarId}/max",
+      "role": "operator",
+      "write": true,
+      "request": {
+        "$ref": "#/definitions/MaxRequest"
+      },
+      "response": "MaxResult",
+      "errors": [
+        "AVATAR_NOT_OWNED"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/players/{uid}/items/{guid}",
+      "role": "operator",
+      "write": true,
+      "request": {
+        "$ref": "#/definitions/PatchItemRequest"
+      },
+      "response": {
+        "$ref": "#/definitions/InventoryItem"
+      },
+      "errors": [
+        "INVALID_GUID",
+        "ITEM_NOT_FOUND",
+        "NOT_EQUIPMENT",
+        "INVALID_ARTIFACT_CONFIG",
+        "STATE_VERIFICATION_FAILED",
+        "INVALID_ASCENSION",
+        "OUT_OF_RANGE",
+        "NOT_A_WEAPON"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/players/{uid}/items/{guid}",
+      "role": "operator",
+      "write": true,
+      "query": {
+        "confirm": "the same guid"
+      },
+      "response": {
+        "$ref": "#/definitions/DeleteItemResult"
+      },
+      "errors": [
+        "CONFIRMATION_REQUIRED",
+        "INVALID_GUID",
+        "ITEM_NOT_FOUND",
+        "UNSUPPORTED_OPERATION",
+        "ITEM_EQUIPPED",
+        "STATE_VERIFICATION_FAILED"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/players/{uid}/items",
+      "role": "operator",
+      "write": true,
+      "proposed": "POST /api/v1/players/{uid}/items",
+      "request": {
+        "$ref": "#/definitions/GiveItemsRequest"
+      },
+      "response": {
+        "$ref": "#/definitions/GiveItemsResult"
+      },
+      "errors": [
+        "UNKNOWN_ITEM",
+        "OUT_OF_RANGE",
+        "BATCH_TOO_LARGE",
+        "INVENTORY_FULL",
+        "UNSUPPORTED_ITEM",
+        "STACK_LIMIT_EXCEEDED",
+        "INVALID_ASCENSION",
+        "ALREADY_OWNED",
+        "NOT_EQUIPMENT",
+        "STATE_VERIFICATION_FAILED"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/players/{uid}/artifacts",
+      "role": "operator",
+      "write": true,
+      "proposed": "POST /api/v1/players/{uid}/artifacts",
+      "request": {
+        "$ref": "#/definitions/GiveArtifactRequest"
+      },
+      "response": {
+        "$ref": "#/definitions/GiveArtifactResult"
+      },
+      "errors": [
+        "NOT_AN_ARTIFACT",
+        "OUT_OF_RANGE",
+        "INVALID_ARTIFACT_CONFIG",
+        "INVENTORY_FULL",
+        "STATE_VERIFICATION_FAILED",
+        "INVALID_MODE"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/players/{uid}/artifacts/{guid}/equip",
+      "role": "operator",
+      "write": true,
+      "proposed": "POST /api/v1/players/{uid}/artifacts/{guid}/equip",
+      "request": {
+        "$ref": "#/definitions/EquipArtifactRequest"
+      },
+      "response": "OwnedAvatar + alreadyEquipped",
+      "errors": [
+        "INVALID_GUID",
+        "ITEM_NOT_FOUND",
+        "NOT_AN_ARTIFACT",
+        "AVATAR_NOT_OWNED",
+        "ITEM_EQUIPPED_ELSEWHERE",
+        "STATE_VERIFICATION_FAILED",
+        "SLOT_OCCUPIED"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/players/{uid}/world-level",
+      "role": "operator",
+      "write": true,
+      "request": {
+        "$ref": "#/definitions/WorldLevelRequest"
+      },
+      "response": "object",
+      "errors": [
+        "OUT_OF_RANGE",
+        "NOT_APPLIED",
+        "STATE_VERIFICATION_FAILED"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/players/{uid}/teleport",
+      "role": "operator",
+      "write": true,
+      "request": {
+        "$ref": "#/definitions/TeleportRequest"
+      },
+      "response": "object",
+      "errors": [
+        "UNKNOWN_SCENE",
+        "INVALID_POSITION",
+        "NOT_APPLIED",
+        "STATE_VERIFICATION_FAILED",
+        "POINT_NOT_FOUND",
+        "UNSUPPORTED_OPERATION",
+        "PLAYER_OFFLINE"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/players/{uid}/spawn",
+      "role": "operator",
+      "write": true,
+      "request": {
+        "$ref": "#/definitions/SpawnRequest"
+      },
+      "response": "object",
+      "errors": [
+        "UNKNOWN_MONSTER",
+        "OUT_OF_RANGE",
+        "NO_SCENE"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/commands/execute",
+      "role": "admin",
+      "write": true,
+      "request": {
+        "$ref": "#/definitions/ExecuteRequest"
+      },
+      "response": "ExecuteResult",
+      "errors": [
+        "RAW_COMMANDS_DISABLED",
+        "COMMAND_NOT_ALLOWED",
+        "UNKNOWN_COMMAND",
+        "INVALID_COMMAND"
+      ]
+    }
+  ]
+}

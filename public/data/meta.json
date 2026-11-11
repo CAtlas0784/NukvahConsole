@@ -1,15 +1,116 @@
 {
-  "schema": 1,
-  "generatedAt": "2026-11-09T04:20:24.765Z",
+  "schema": 2,
+  "generatedAt": "2026-11-09T19:23:07.612Z",
   "gameVersion": "7.2.0",
-  "source": "SnezhnayaCore resources (ExcelBinOutput + TextMap) and command sources",
+  "source": "SnezhnayaCore resources (ExcelBinOutput + TextMap + BinOutput/Scene/Point) and command sources",
   "counts": {
-    "characters": 119,
-    "weapons": 250,
+    "characters": 121,
+    "costumes": 149,
+    "weapons": 258,
     "artifactSets": 63,
-    "materials": 9639,
+    "artifactPieces": 4185,
+    "materials": 9647,
+    "furniture": 2350,
+    "gadgets": 1787,
     "monsters": 1476,
     "scenes": 2241,
+    "teleports": 1600,
     "commands": 58
+  },
+  "coverage": {
+    "characters": {
+      "sourceRows": 158,
+      "included": 121,
+      "excluded": 37,
+      "excludedReasons": {
+        "useType AVATAR_TEST": 27,
+        "formal but outside the playable id range (UGC/test)": 6,
+        "useType AVATAR_ABANDON": 3,
+        "useType AVATAR_SYNC_TEST": 1
+      }
+    },
+    "costumes": {
+      "sourceRows": 155,
+      "included": 149,
+      "excluded": 6,
+      "excludedReasons": {
+        "character 10000901 is not a playable character": 1,
+        "character 10000902 is not a playable character": 1,
+        "character 10000903 is not a playable character": 1,
+        "character 10000904 is not a playable character": 1,
+        "character 10000998 is not a playable character": 1,
+        "character 10000999 is not a playable character": 1
+      }
+    },
+    "weapons": {
+      "sourceRows": 266,
+      "included": 258,
+      "excluded": 8,
+      "excludedReasons": {
+        "template weapon (icon *_Template)": 7,
+        "id 20001 is outside the sword range 11xxx (utility row, e.g. fishing rod)": 1
+      }
+    },
+    "artifactSets": {
+      "sourceRows": 64,
+      "included": 63,
+      "excluded": 1,
+      "excludedReasons": {
+        "set has no named set bonus": 1
+      }
+    },
+    "artifactPieces": {
+      "sourceRows": 4292,
+      "included": 4185,
+      "excluded": 107,
+      "excludedReasons": {
+        "piece belongs to no set": 32,
+        "set 15000 is excluded (see artifactSets)": 75
+      }
+    },
+    "materials": {
+      "sourceRows": 10061,
+      "included": 9647,
+      "excluded": 414,
+      "excludedReasons": {
+        "no TextMap name": 414
+      }
+    },
+    "furniture": {
+      "sourceRows": 2362,
+      "included": 2350,
+      "excluded": 12,
+      "excludedReasons": {
+        "no TextMap name": 12
+      }
+    },
+    "gadgets": {
+      "sourceRows": 27359,
+      "included": 1787,
+      "excluded": 25572,
+      "excludedReasons": {
+        "no TextMap name": 25572
+      }
+    },
+    "monsters": {
+      "sourceRows": 3013,
+      "included": 1476,
+      "excluded": 1537,
+      "excludedReasons": {
+        "no TextMap name": 1537
+      }
+    },
+    "scenes": {
+      "sourceRows": 2241,
+      "included": 2241,
+      "excluded": 0,
+      "excludedReasons": {}
+    }
+  },
+  "points": {
+    "files": 2202,
+    "points": 4680,
+    "unknownType": 2331,
+    "noContainer": 21
   }
 }

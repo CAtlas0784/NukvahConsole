@@ -8,3 +8,6 @@ dist
 coverage
 dist-pages
 *.tsbuildinfo
+
+# local game-icon cache (npm run assets); never committed or deployed
+.cache

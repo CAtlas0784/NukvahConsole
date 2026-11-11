@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { useSettings } from '@/stores/settings';
+import { ImageOff } from 'lucide-react';
+import { useAssetBase } from '@/stores/settings';
+import { useAssetIndex, type MissingReason } from '@/lib/assetIndex';
 import type { Element } from '@/data/types';
 
 const ELEMENT_COLOR: Record<string, string> = {
@@ -15,22 +17,16 @@ const ELEMENT_COLOR: Record<string, string> = {
 };
 const RARITY_COLOR: Record<number, string> = { 1: '#8f97a8', 2: '#6fbf8f', 3: '#6fa3e0', 4: '#a98ae6', 5: '#e2b65f' };
 
-function hash(text: string): number {
-  let h = 2166136261;
-  for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 16777619);
-  return h >>> 0;
-}
-
-function initials(name: string): string {
-  const words = name.replace(/[^\p{L}\p{N} ]/gu, ' ').split(/\s+/).filter(Boolean);
-  if (words.length === 0) return '?';
-  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
-  return (words[0][0] + words[words.length - 1][0]).toUpperCase();
-}
+const MISSING_TEXT: Record<MissingReason, string> = {
+  'no-key': 'No image for this object',
+  unverified: 'Image not available or not verified',
+  'load-failed': 'Image failed to load',
+};
 
 /**
- * Artwork for a catalog entry. Uses operator-hosted images when an asset base URL is configured;
- * otherwise draws a deterministic sigil (no game artwork is bundled with the console).
+ * Artwork for a catalog entry. `icon` must be the entry's OWN image key from the catalog (never a
+ * key looked up by name). The image is drawn only when that key is in the verified asset index;
+ * otherwise an explicit "no image" placeholder is shown, never a substitute picture.
  */
 export function Artwork({
   icon,
@@ -49,57 +45,62 @@ export function Artwork({
   rounded?: string;
   className?: string;
 }) {
-  const assetBase = useSettings((s) => s.assetBase);
-  const [failed, setFailed] = useState(false);
+  const assetBase = useAssetBase();
+  const index = useAssetIndex(assetBase);
+  const [failedKey, setFailedKey] = useState<string | null>(null);
+  const [loadedKey, setLoadedKey] = useState<string | null>(null);
   const color = (element && ELEMENT_COLOR[element]) || RARITY_COLOR[rarity] || '#a9c8ec';
-  const seed = hash(icon || name);
-  const sides = 5 + (seed % 4);
-  const rot = seed % 360;
-  const points = Array.from({ length: sides }, (_, i) => {
-    const a = ((Math.PI * 2) / sides) * i - Math.PI / 2;
-    return `${50 + Math.cos(a) * 34},${50 + Math.sin(a) * 34}`;
-  }).join(' ');
+  const frame = { width: size, height: size };
 
-  if (assetBase && icon && !failed) {
+  const verified = Boolean(icon && index?.has(icon));
+  const failed = failedKey !== null && failedKey === icon;
+
+  if (icon && index === undefined) {
+    // Index still loading: neutral skeleton, no picture yet.
+    return <div className={`shrink-0 animate-pulse bg-white/5 ${rounded} ${className}`} style={frame} aria-hidden />;
+  }
+
+  if (icon && verified && !failed) {
+    const loaded = loadedKey === icon;
     return (
       <div
         className={`relative shrink-0 overflow-hidden ${rounded} ${className}`}
-        style={{ width: size, height: size, background: `radial-gradient(circle at 50% 30%, ${color}33, transparent 70%), #0b1024` }}
+        style={{ ...frame, background: `radial-gradient(circle at 50% 30%, ${color}33, transparent 70%), #0b1024` }}
       >
+        {!loaded && <div className="absolute inset-0 animate-pulse bg-white/5" aria-hidden />}
         <img
           src={`${assetBase}/${icon}.png`}
-          alt=""
+          alt={name}
+          title={name}
+          width={size}
+          height={size}
           loading="lazy"
           decoding="async"
           referrerPolicy="no-referrer"
-          onError={() => setFailed(true)}
-          className="h-full w-full object-cover"
+          data-image-key={icon}
+          onLoad={() => setLoadedKey(icon)}
+          onError={() => setFailedKey(icon)}
+          className={`h-full w-full object-contain transition-opacity ${loaded ? 'opacity-100' : 'opacity-0'}`}
         />
       </div>
     );
   }
 
+  const reason: MissingReason = !icon ? 'no-key' : failed ? 'load-failed' : 'unverified';
+  const label = `${name}: ${MISSING_TEXT[reason]}${icon ? ` (${icon})` : ''}`;
   return (
     <div
-      className={`relative grid shrink-0 place-items-center overflow-hidden ${rounded} ${className}`}
-      style={{
-        width: size,
-        height: size,
-        background: `radial-gradient(circle at 50% 35%, ${color}38, transparent 65%), linear-gradient(160deg, #111834, #070a17)`,
-        boxShadow: `inset 0 0 0 1px ${color}40`,
-      }}
-      aria-hidden
+      role="img"
+      aria-label={label}
+      title={label}
+      data-missing-image={reason}
+      className={`relative grid shrink-0 place-items-center overflow-hidden border border-dashed ${rounded} ${className}`}
+      style={{ ...frame, borderColor: `${color}55`, background: 'repeating-linear-gradient(135deg, #0b1024, #0b1024 6px, #0e1430 6px, #0e1430 12px)' }}
     >
-      <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full">
-        <g transform={`rotate(${rot} 50 50)`} fill="none" stroke={color} strokeOpacity="0.55" strokeWidth="1.2">
-          <polygon points={points} />
-          <circle cx="50" cy="50" r="42" strokeOpacity="0.22" strokeDasharray="2 4" />
-        </g>
-        <path d="M50 18 L53 47 L82 50 L53 53 L50 82 L47 53 L18 50 L47 47 Z" fill={color} fillOpacity="0.12" />
-      </svg>
-      <span className="relative font-display font-semibold tracking-wider" style={{ color, fontSize: Math.max(11, size * 0.3) }}>
-        {initials(name)}
-      </span>
+      <div className="flex flex-col items-center gap-0.5 text-center" style={{ color: `${color}cc` }}>
+        <ImageOff size={Math.max(12, Math.round(size * 0.32))} strokeWidth={1.5} aria-hidden />
+        {size >= 56 && <span className="px-1 text-[9px] font-medium uppercase leading-tight tracking-wider opacity-80">no image</span>}
+      </div>
     </div>
   );
 }

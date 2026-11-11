@@ -27,6 +27,49 @@ Before deploying publicly, decide whether you are comfortable publishing the gen
 To keep it private, deploy to a private host, or remove `public/data` from the repository and
 generate it at build time in a private CI.
 
+## Local icon cache (`npm run assets`)
+
+Static game data, images and build recommendations are kept apart:
+
+| Layer | Where | Source |
+|---|---|---|
+| Static game data (IDs, names, icon *names*) | `public/data/*.json` | Local 7.2 resources via `npm run catalog`. No network. New 7.2 rows without TextMap names get their internal name from the icon and are marked `"internal": true` |
+| Images | `.cache/game-assets/<IconName>.png` + `manifest.json` + `report.json` | Enka.Network UI host `https://enka.network/ui/<IconName>.png`, the host referenced by `github.com/EnkaNetwork/API-docs` `store/gi/*.json`. Fetched by `scripts/sync-assets.mjs` |
+| Build recommendations | none | No trustworthy, openly licensed Genshin build dataset was found. Nothing is invented |
+
+`sync-assets.mjs` only requests icon names that appear in the local catalog. It downloads each icon
+once and records the URL, size, SHA-256, ETag and time in `manifest.json`. A second run sends no
+requests. Icons the source does not have are recorded as `missing` and re-checked after 7 days, or
+straight away with `--retry-missing`. It works one request at a time with a delay and sends a
+descriptive User-Agent. It checks robots.txt first, honours `Retry-After` on 429/503, and stops on
+401/403 rather than working around a refusal. A file is replaced only after a complete, valid PNG
+download.
+
+The cache folder is git-ignored. Vite serves it at `/game-assets/` in `npm run dev` and
+`npm run preview` only, so `dist/` never contains game artwork. Settings → Artwork source still
+overrides it.
+
+**Image identity (since 2026-11-09).** An entry's image key is the icon field of its own Excel row,
+never a lookup by name. `npm run assets:verify` (`scripts/verify-assets.mjs`) re-hashes every cached
+file against the manifest, decodes the PNG, checks the key family, and rejects byte-identical files
+under different keys. It writes `.cache/game-assets/index.json`, and the UI draws only keys listed
+there. Anything else shows an explicit "no image" placeholder (the old generated sigil is gone).
+Weapon rows that reuse another weapon's art as placeholder (e.g. 11506 with the Dull Blade icon) are
+shipped with `icon: null` and `gameIcon` set. A custom Settings → Artwork source must serve its own
+`index.json`, or nothing from it is drawn. See `docs/IMAGE_ACCURACY_REPORT.md`.
+
+**Teleport points.** The 7.x `BinOutput/Scene/Point` files use obfuscated keys. `scripts/point-keys.json`
+maps them to plain names. `scripts/derive-point-keys.mjs` derives it by matching the same point ids
+in MeChen618/AstaPS-Resource `6cfecfb5` (MIT, deobfuscated copies of the same files). Only exact,
+unambiguous value matches count, and each mapping records its evidence. The upstream files are not
+copied into this repository.
+
+Sources evaluated and not used:
+- **prydwen.gg**: returns HTTP 403 to automated requests, robots.txt disallows `/api/`, and it asks
+  for a crawl delay of 10s. Not scraped.
+- **genshindev/api** (genshin.jmp.blue, OSL-3.0): newest content is from mid-2025, with no 6.x/7.x
+  characters, so it is too old for 7.2.
+
 ## Third-party code
 
 Fonts: Cinzel, Manrope, Noto Sans Thai, JetBrains Mono (SIL Open Font License, via Fontsource).
